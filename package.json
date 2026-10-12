@@ -1,0 +1,16 @@
+{
+  "name": "loopwear-clothing-swap",
+  "version": "1.0.0",
+  "description": "LoopWear - Sustainable Clothing Exchange & Barter Marketplace",
+  "type": "module",
+  "scripts": {
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.4.0"
+  }
+}
