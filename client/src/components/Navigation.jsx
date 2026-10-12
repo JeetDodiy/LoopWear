@@ -11,12 +11,12 @@ import {
   Moon, 
   PlusCircle, 
   Compass, 
-  ChevronDown 
+  LogOut, 
+  LogIn 
 } from "lucide-react";
 
-export function Navbar({ activePage, setActivePage, onOpenAddModal, onOpenAdminAuth, onOpenUserAuth }) {
-  const { currentUser, allUsers, switchUser, logout, theme, toggleTheme, pendingIncomingCount } = useApp();
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
+export function Navbar({ activePage, setActivePage, onOpenAddModal }) {
+  const { currentUser, logout, theme, toggleTheme, pendingIncomingCount } = useApp();
   const isAdmin = currentUser?.role === "admin";
 
   return (
@@ -26,7 +26,7 @@ export function Navbar({ activePage, setActivePage, onOpenAddModal, onOpenAdminA
         <div 
           className="nav-brand" 
           style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }} 
-          onClick={() => setActivePage("landing")}
+          onClick={() => setActivePage(isAdmin ? "admin" : "landing")}
         >
           <img 
             src="/logo.png" 
@@ -34,85 +34,101 @@ export function Navbar({ activePage, setActivePage, onOpenAddModal, onOpenAdminA
             style={{ width: "38px", height: "38px", borderRadius: "10px", objectFit: "cover", boxShadow: "var(--glow-pink)" }} 
           />
           <span className="brand-text">LoopWear</span>
-          <span className="badge badge-yellow" style={{ fontSize: "0.7rem", padding: "2px 8px" }}>
-            SWAP
+          <span className={isAdmin ? "badge badge-yellow" : "badge badge-pink"} style={{ fontSize: "0.7rem", padding: "2px 8px" }}>
+            {isAdmin ? "ADMIN" : "SWAP"}
           </span>
         </div>
 
-        {/* Navigation Links */}
+        {/* Navigation Links - STRICTLY ONE PANEL PER ROLE */}
         <nav className="nav-links">
-          <button 
-            className={`nav-link-btn ${activePage === "landing" ? "active" : ""}`}
-            onClick={() => setActivePage("landing")}
-          >
-            <Compass size={16} /> Explore
-          </button>
-          <button 
-            className={`nav-link-btn ${activePage === "listings" ? "active" : ""}`}
-            onClick={() => setActivePage("listings")}
-          >
-            <Shirt size={16} /> Browse Clothes
-          </button>
-          <button 
-            className={`nav-link-btn ${activePage === "chat" ? "active" : ""}`}
-            onClick={() => setActivePage("chat")}
-            style={{ position: "relative" }}
-          >
-            <MessageSquare size={16} /> Chat & Deals
-            {pendingIncomingCount > 0 && (
-              <span style={{
-                position: "absolute",
-                top: "2px",
-                right: "4px",
-                background: "var(--palette-pink-neon)",
-                color: "#fff",
-                fontSize: "0.68rem",
-                width: "16px",
-                height: "16px",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 800
-              }}>
-                {pendingIncomingCount}
-              </span>
-            )}
-          </button>
-          
-          <button 
-            className={`nav-link-btn ${activePage === "dashboard" ? "active" : ""}`}
-            onClick={() => setActivePage("dashboard")}
-          >
-            <User size={16} /> My Closet
-          </button>
-
-          {/* Admin Link - Highlighted if logged in as Admin */}
-          <button 
-            className={`nav-link-btn ${activePage === "admin" ? "active" : ""}`}
-            onClick={() => setActivePage("admin")}
-            style={isAdmin ? {
-              color: "var(--palette-yellow)",
-              fontWeight: 800,
-              background: "rgba(255, 234, 108, 0.12)",
-              borderRadius: "var(--radius-sm)"
-            } : {}}
-          >
-            <ShieldCheck size={16} color={isAdmin ? "var(--palette-yellow)" : "currentColor"} /> 
-            {isAdmin ? "Admin Control" : "Admin Panel 🔒"}
-          </button>
+          {isAdmin ? (
+            <>
+              <button 
+                className={`nav-link-btn ${activePage === "admin" ? "active" : ""}`}
+                onClick={() => setActivePage("admin")}
+                style={{
+                  color: "var(--palette-yellow)",
+                  fontWeight: 800,
+                  background: "rgba(255, 234, 108, 0.12)",
+                  borderRadius: "var(--radius-sm)"
+                }}
+              >
+                <ShieldCheck size={16} color="var(--palette-yellow)" /> Admin Panel
+              </button>
+              <button 
+                className={`nav-link-btn ${activePage === "listings" ? "active" : ""}`}
+                onClick={() => setActivePage("listings")}
+              >
+                <Shirt size={16} /> Review Listings
+              </button>
+              <button 
+                className={`nav-link-btn ${activePage === "landing" ? "active" : ""}`}
+                onClick={() => setActivePage("landing")}
+              >
+                <Compass size={16} /> Home
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                className={`nav-link-btn ${activePage === "landing" ? "active" : ""}`}
+                onClick={() => setActivePage("landing")}
+              >
+                <Compass size={16} /> Explore
+              </button>
+              <button 
+                className={`nav-link-btn ${activePage === "listings" ? "active" : ""}`}
+                onClick={() => setActivePage("listings")}
+              >
+                <Shirt size={16} /> Browse Clothes
+              </button>
+              <button 
+                className={`nav-link-btn ${activePage === "chat" ? "active" : ""}`}
+                onClick={() => setActivePage("chat")}
+                style={{ position: "relative" }}
+              >
+                <MessageSquare size={16} /> Chat & Deals
+                {pendingIncomingCount > 0 && (
+                  <span style={{
+                    position: "absolute",
+                    top: "2px",
+                    right: "4px",
+                    background: "var(--palette-pink-neon)",
+                    color: "#fff",
+                    fontSize: "0.68rem",
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 800
+                  }}>
+                    {pendingIncomingCount}
+                  </span>
+                )}
+              </button>
+              <button 
+                className={`nav-link-btn ${activePage === "dashboard" ? "active" : ""}`}
+                onClick={() => setActivePage("dashboard")}
+              >
+                <User size={16} /> My Closet
+              </button>
+            </>
+          )}
         </nav>
 
-        {/* Actions & User Switcher */}
-        <div className="nav-actions">
-          {/* Post item quick button */}
-          <button 
-            className="btn-secondary btn-sm"
-            onClick={onOpenAddModal}
-            title="List an item to exchange"
-          >
-            <PlusCircle size={16} /> List Item
-          </button>
+        {/* Actions & Single Current User Display (No Dropdown Menu) */}
+        <div className="nav-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {!isAdmin && (
+            <button 
+              className="btn-secondary btn-sm"
+              onClick={onOpenAddModal}
+              title="List an item to exchange"
+            >
+              <PlusCircle size={16} /> List Item
+            </button>
+          )}
 
           {/* Theme Toggle */}
           <button 
@@ -124,155 +140,60 @@ export function Navbar({ activePage, setActivePage, onOpenAddModal, onOpenAdminA
             {theme === "dark" ? <Sun size={17} color="#FFEA6C" /> : <Moon size={17} />}
           </button>
 
-          {/* User Profile / Quick Switcher */}
-          <div style={{ position: "relative" }}>
-            <button 
-              className="btn-outline btn-sm"
-              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px" }}
-              onClick={() => setShowUserDropdown(!showUserDropdown)}
-            >
-              {currentUser?.avatar ? (
-                <img 
-                  src={currentUser.avatar} 
-                  alt={currentUser.name} 
-                  style={{ width: "26px", height: "26px", borderRadius: "50%", objectFit: "cover" }} 
-                />
-              ) : (
-                <User size={18} />
-              )}
-              <span style={{ fontSize: "0.85rem", fontWeight: 700, maxWidth: "90px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {currentUser?.name?.split(" ")[0] || "Account"}
-              </span>
-              <ChevronDown size={14} />
-            </button>
-
-            {/* Switcher Dropdown */}
-            {showUserDropdown && (
-              <div 
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "120%",
-                  width: "260px",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
-                  padding: "12px",
-                  zIndex: 200
+          {/* Single User Identity Pill with Direct Log Out */}
+          {currentUser ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button 
+                className="btn-outline btn-sm"
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px", 
+                  padding: "5px 12px",
+                  borderColor: isAdmin ? "var(--palette-yellow)" : "var(--palette-pink-neon)",
+                  background: isAdmin ? "rgba(255, 234, 108, 0.08)" : "rgba(255, 97, 248, 0.08)"
                 }}
+                onClick={() => setActivePage(isAdmin ? "admin" : "dashboard")}
+                title={isAdmin ? "Go to Admin Panel" : "Go to My Closet"}
               >
-                <div style={{ paddingBottom: "10px", borderBottom: "1px solid var(--border-subtle)", marginBottom: "8px" }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
-                    Switch Demo Profile
-                  </div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--palette-pink-light)" }}>
-                    Current: <strong>{currentUser?.name}</strong> ({currentUser?.role})
-                  </div>
-                </div>
+                {currentUser.avatar ? (
+                  <img 
+                    src={currentUser.avatar} 
+                    alt={currentUser.name} 
+                    style={{ width: "24px", height: "24px", borderRadius: "50%", objectFit: "cover" }} 
+                  />
+                ) : (
+                  <User size={16} />
+                )}
+                <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>
+                  {currentUser.name}
+                </span>
+                <span className={isAdmin ? "badge badge-yellow" : "badge badge-pink"} style={{ fontSize: "0.68rem", padding: "1px 6px" }}>
+                  {isAdmin ? "Admin" : "User"}
+                </span>
+              </button>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {allUsers.map((u) => (
-                    <button
-                      key={u.id}
-                      onClick={() => {
-                        switchUser(u);
-                        setShowUserDropdown(false);
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "8px",
-                        borderRadius: "var(--radius-sm)",
-                        background: currentUser?.id === u.id ? "rgba(255, 97, 248, 0.15)" : "transparent",
-                        border: currentUser?.id === u.id ? "1px solid var(--palette-pink-neon)" : "1px solid transparent",
-                        textAlign: "left",
-                        color: "var(--text-main)",
-                        width: "100%"
-                      }}
-                    >
-                      <img 
-                        src={u.avatar} 
-                        alt={u.name} 
-                        style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover" }} 
-                      />
-                      <div style={{ overflow: "hidden" }}>
-                        <div style={{ fontSize: "0.85rem", fontWeight: 700, lineHeight: 1.2 }}>{u.name}</div>
-                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                          {u.role === "admin" ? "Platform Admin" : u.city}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <button
-                    onClick={() => {
-                      if (onOpenUserAuth) onOpenUserAuth();
-                      else setActivePage("auth");
-                      setShowUserDropdown(false);
-                    }}
-                    style={{
-                      width: "100%",
-                      fontSize: "0.8rem",
-                      color: "var(--palette-pink-light)",
-                      background: "rgba(255, 97, 248, 0.08)",
-                      border: "1px solid rgba(255, 97, 248, 0.2)",
-                      padding: "6px 10px",
-                      borderRadius: "var(--radius-sm)",
-                      textAlign: "center",
-                      fontWeight: 700,
-                      cursor: "pointer"
-                    }}
-                  >
-                    👤 User Sign In Panel &rarr;
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (onOpenAdminAuth) onOpenAdminAuth();
-                      else setActivePage("auth");
-                      setShowUserDropdown(false);
-                    }}
-                    style={{
-                      width: "100%",
-                      fontSize: "0.8rem",
-                      color: "var(--palette-yellow)",
-                      background: "rgba(255, 234, 108, 0.08)",
-                      border: "1px solid rgba(255, 234, 108, 0.2)",
-                      padding: "6px 10px",
-                      borderRadius: "var(--radius-sm)",
-                      textAlign: "center",
-                      fontWeight: 700,
-                      cursor: "pointer"
-                    }}
-                  >
-                    🛡️ Admin Sign In Panel &rarr;
-                  </button>
-                  <button
-                    onClick={() => {
-                      logout();
-                      setActivePage("auth");
-                      setShowUserDropdown(false);
-                    }}
-                    style={{
-                      width: "100%",
-                      fontSize: "0.78rem",
-                      color: "var(--text-muted)",
-                      background: "transparent",
-                      border: "none",
-                      padding: "4px",
-                      textAlign: "center",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Log Out of Current Session
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+              <button
+                className="btn-outline btn-sm"
+                onClick={() => {
+                  logout();
+                  setActivePage("auth");
+                }}
+                title="Log out"
+                style={{ padding: "7px 10px", color: "#ff8b8b", borderColor: "rgba(255, 75, 75, 0.3)" }}
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="btn-primary btn-sm"
+              onClick={() => setActivePage("auth")}
+              style={{ display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <LogIn size={15} /> Sign In
+            </button>
+          )}
         </div>
       </div>
     </header>

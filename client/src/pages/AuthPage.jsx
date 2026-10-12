@@ -378,44 +378,6 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
                     <LogIn size={18} /> {loading ? "Signing In..." : "Log In & Enter User Closet"}
                   </button>
                 </form>
-
-                {/* Quick Auto-Fill Demo Accounts for easy review */}
-                <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid var(--border-subtle)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", color: "var(--palette-pink-light)", fontSize: "0.84rem", fontWeight: 700 }}>
-                    <Sparkles size={14} /> Quick Auto-Fill Swapper Credentials:
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
-                    {[
-                      { name: "Maya Lin", user: "maya", pass: "maya123", city: "Mumbai" },
-                      { name: "Julian Rivera", user: "julian", pass: "julian123", city: "Bengaluru" },
-                      { name: "Elena Rostova", user: "elena", pass: "elena123", city: "Delhi" }
-                    ].map((demo) => (
-                      <button
-                        key={demo.user}
-                        type="button"
-                        onClick={() => {
-                          setUserUsername(demo.user);
-                          setUserPassword(demo.pass);
-                        }}
-                        style={{
-                          background: "rgba(255, 255, 255, 0.04)",
-                          border: "1px solid var(--border-subtle)",
-                          borderRadius: "var(--radius-sm)",
-                          padding: "8px 12px",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          color: "var(--text-main)",
-                          fontSize: "0.82rem"
-                        }}
-                      >
-                        <div style={{ fontWeight: 700 }}>{demo.name}</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>
-                          User: <code style={{ color: "var(--palette-yellow)" }}>{demo.user}</code> | Pass: <code style={{ color: "var(--palette-pink-light)" }}>{demo.pass}</code>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             ) : (
               /* User Register Form */
@@ -612,43 +574,6 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
                 <ShieldCheck size={18} /> {loading ? "Verifying Authority..." : "Log In to Admin Panel"}
               </button>
             </form>
-
-            {/* Admin Auto-Fill Demo Credentials */}
-            <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid var(--border-subtle)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", color: "var(--palette-yellow)", fontSize: "0.82rem", fontWeight: 700 }}>
-                <Sparkles size={14} /> Quick Demo Administrator Credentials:
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminUsername("admin");
-                  setAdminPassword("admin123");
-                }}
-                style={{
-                  width: "100%",
-                  background: "rgba(255, 234, 108, 0.05)",
-                  border: "1px solid rgba(255, 234, 108, 0.25)",
-                  borderRadius: "var(--radius-sm)",
-                  padding: "10px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                  color: "var(--text-main)",
-                  fontSize: "0.85rem"
-                }}
-              >
-                <div>
-                  <strong>Platform Supervisor</strong> (admin)
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                    Username: <code style={{ color: "var(--palette-yellow)" }}>admin</code> | Password: <code style={{ color: "var(--palette-pink-light)" }}>admin123</code>
-                  </div>
-                </div>
-                <span className="badge badge-yellow" style={{ fontSize: "0.7rem" }}>
-                  Fill Credentials &rarr;
-                </span>
-              </button>
-            </div>
           </div>
         )}
 

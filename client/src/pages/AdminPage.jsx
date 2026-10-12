@@ -220,41 +220,6 @@ export function AdminPage({ setActivePage, setSelectedItemId }) {
                 <ShieldCheck size={18} /> {authLoading ? "Verifying Authority..." : "Log In & Enter Admin Panel"}
               </button>
             </form>
-
-            {/* Quick autofill helper */}
-            <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid var(--border-subtle)" }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminUsername("admin");
-                  setAdminPassword("admin123");
-                }}
-                style={{
-                  width: "100%",
-                  background: "rgba(255, 234, 108, 0.05)",
-                  border: "1px solid rgba(255, 234, 108, 0.25)",
-                  borderRadius: "var(--radius-sm)",
-                  padding: "10px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                  color: "var(--text-main)",
-                  fontSize: "0.84rem"
-                }}
-              >
-                <div>
-                  <strong>Autofill Demo Admin Credentials</strong>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                    Username: <code style={{ color: "var(--palette-yellow)" }}>admin</code> | Password: <code style={{ color: "var(--palette-pink-light)" }}>admin123</code>
-                  </div>
-                </div>
-                <span className="badge badge-yellow" style={{ fontSize: "0.7rem" }}>
-                  Fill &rarr;
-                </span>
-              </button>
-            </div>
-
           </div>
         </div>
       </div>

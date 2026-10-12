@@ -30,14 +30,6 @@ function MainApp() {
         activePage={activePage} 
         setActivePage={setActivePage} 
         onOpenAddModal={() => setIsAddModalOpen(true)}
-        onOpenAdminAuth={() => {
-          setAuthRoleTarget("admin");
-          setActivePage("auth");
-        }}
-        onOpenUserAuth={() => {
-          setAuthRoleTarget("user");
-          setActivePage("auth");
-        }}
       />
 
       {/* Main Page Router */}
