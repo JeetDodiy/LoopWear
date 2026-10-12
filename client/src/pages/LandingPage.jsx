@@ -275,7 +275,7 @@ export function LandingPage({ setActivePage, setSelectedItemId, onOpenAddModal }
                 <div className="item-card-image-box">
                   <img src={item.images[0]} alt={item.title} className="item-card-image" />
                   <div className="item-card-value-tag">
-                    ~${item.estimatedValue} Swap Val
+                    ~₹{item.estimatedValue?.toLocaleString('en-IN')} Swap Val
                   </div>
                   <div style={{ position: "absolute", bottom: "12px", left: "12px" }}>
                     <span className="badge badge-yellow">

@@ -19,7 +19,7 @@ export function AddItemModal({ isOpen, onClose, setActivePage }) {
   const [brand, setBrand] = useState("");
   const [size, setSize] = useState("M");
   const [condition, setCondition] = useState("Gently Used");
-  const [estimatedValue, setEstimatedValue] = useState(85);
+  const [estimatedValue, setEstimatedValue] = useState(2500);
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageSourceMode, setImageSourceMode] = useState("upload"); // 'upload' | 'preset' | 'url'
@@ -226,11 +226,12 @@ export function AddItemModal({ isOpen, onClose, setActivePage }) {
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px" }}>Est. Swap Value ($)</label>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px" }}>Est. Swap Value (₹)</label>
               <input
                 type="number"
-                min="10"
-                max="500"
+                min="200"
+                max="50000"
+                step="100"
                 value={estimatedValue}
                 onChange={(e) => setEstimatedValue(e.target.value)}
                 style={{ width: "100%" }}

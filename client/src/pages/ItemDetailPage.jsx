@@ -169,7 +169,7 @@ export function ItemDetailPage({ itemId, setActivePage, setSelectedItemId }) {
                   Estimated Fair Swap Value
                 </div>
                 <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--palette-yellow)" }}>
-                  ${item.estimatedValue} <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>USD</span>
+                  ₹{item.estimatedValue?.toLocaleString('en-IN')} <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>INR</span>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -237,7 +237,7 @@ export function ItemDetailPage({ itemId, setActivePage, setSelectedItemId }) {
                   >
                     {userItems.map((ui) => (
                       <option key={ui.id} value={ui.id}>
-                        {ui.title} (~${ui.estimatedValue})
+                        {ui.title} (~₹{ui.estimatedValue?.toLocaleString('en-IN')})
                       </option>
                     ))}
                   </select>

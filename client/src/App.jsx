@@ -16,6 +16,12 @@ function MainApp() {
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [selectedSwapId, setSelectedSwapId] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [authRoleTarget, setAuthRoleTarget] = useState("user"); // 'user' | 'admin'
+
+  // Always reset window scroll smoothly to top when switching pages, preventing cheap auto-scroll glitches
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [activePage]);
 
   return (
     <div className="app-container">
@@ -24,6 +30,14 @@ function MainApp() {
         activePage={activePage} 
         setActivePage={setActivePage} 
         onOpenAddModal={() => setIsAddModalOpen(true)}
+        onOpenAdminAuth={() => {
+          setAuthRoleTarget("admin");
+          setActivePage("auth");
+        }}
+        onOpenUserAuth={() => {
+          setAuthRoleTarget("user");
+          setActivePage("auth");
+        }}
       />
 
       {/* Main Page Router */}
@@ -37,7 +51,11 @@ function MainApp() {
         )}
 
         {activePage === "auth" && (
-          <AuthPage setActivePage={setActivePage} />
+          <AuthPage 
+            setActivePage={setActivePage} 
+            initialPanel={authRoleTarget}
+            onSwitchTargetPanel={(target) => setAuthRoleTarget(target)}
+          />
         )}
 
         {activePage === "listings" && (

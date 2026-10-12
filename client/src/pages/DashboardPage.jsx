@@ -52,6 +52,25 @@ export function DashboardPage({ setActivePage, setSelectedItemId, setSelectedSwa
     }
   };
 
+  if (!currentUser) {
+    return (
+      <div style={{ padding: "80px 0" }}>
+        <div className="content-wrapper" style={{ maxWidth: "500px", textAlign: "center" }}>
+          <div className="glass-card" style={{ padding: "40px" }}>
+            <Shirt size={48} color="var(--palette-pink-neon)" style={{ marginBottom: "16px" }} />
+            <h2 style={{ fontSize: "1.6rem", fontWeight: 800, marginBottom: "8px" }}>Sign In to View Your Closet</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "20px" }}>
+              Please sign in with your user account to track your garments, incoming barter offers, and ecological savings.
+            </p>
+            <button className="btn-primary" onClick={() => setActivePage("auth")} style={{ justifyContent: "center", width: "100%" }}>
+              Go to Member Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "40px 0" }}>
       <div className="content-wrapper">
@@ -173,7 +192,7 @@ export function DashboardPage({ setActivePage, setSelectedItemId, setSelectedSwa
                   <div key={item.id} className="item-card">
                     <div className="item-card-image-box">
                       <img src={item.images[0]} alt={item.title} className="item-card-image" />
-                      <div className="item-card-value-tag">~${item.estimatedValue}</div>
+                      <div className="item-card-value-tag">~₹{item.estimatedValue?.toLocaleString('en-IN')}</div>
                       <div style={{ position: "absolute", bottom: "10px", left: "10px" }}>
                         <span className={`badge ${item.status === "available" ? "badge-green" : "badge-yellow"}`}>
                           {item.status}

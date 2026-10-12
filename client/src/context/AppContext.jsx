@@ -85,6 +85,14 @@ export function AppProvider({ children }) {
     (s) => s.targetOwnerId === currentUser?.id && (s.status === "pending" || s.status === "negotiating")
   ).length;
 
+  const logout = () => {
+    localStorage.removeItem("loopwear_user_id");
+    setCurrentUser(null);
+    setSwaps([]);
+  };
+
+  const isAdmin = currentUser?.role === "admin";
+
   return (
     <AppContext.Provider
       value={{
@@ -96,6 +104,8 @@ export function AppProvider({ children }) {
         theme,
         loading,
         switchUser,
+        logout,
+        isAdmin,
         refreshItems,
         refreshSwaps,
         toggleTheme,

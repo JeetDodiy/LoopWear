@@ -45,16 +45,33 @@ export async function deleteItem(id) {
   return res.json();
 }
 
-export async function loginUser(emailOrUserId) {
-  const isId = emailOrUserId.startsWith("usr_");
-  const payload = isId ? { userId: emailOrUserId } : { email: emailOrUserId };
+export async function loginUser(identifierOrData, password = "", requiredRole = "") {
+  let payload = {};
+  if (typeof identifierOrData === "object" && identifierOrData !== null) {
+    payload = identifierOrData;
+  } else if (typeof identifierOrData === "string") {
+    if (identifierOrData.startsWith("usr_")) {
+      payload = { userId: identifierOrData };
+    } else {
+      payload = { 
+        username: identifierOrData, 
+        email: identifierOrData, 
+        password, 
+        requiredRole 
+      };
+    }
+  }
+
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-  if (!res.ok) throw new Error("Authentication failed");
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Authentication failed");
+  }
+  return data;
 }
 
 export async function registerUser(userData) {

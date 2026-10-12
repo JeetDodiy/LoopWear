@@ -57,9 +57,18 @@ export function ChatPage({ activeSwapId, setActivePage }) {
     return () => clearInterval(interval);
   }, [selectedSwapId]);
 
+  const chatScrollContainerRef = useRef(null);
+
+  const scrollToBottom = () => {
+    if (chatScrollContainerRef.current) {
+      chatScrollContainerRef.current.scrollTop = chatScrollContainerRef.current.scrollHeight;
+    }
+  };
+
+  // Scroll to bottom only when switching active swap
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    setTimeout(scrollToBottom, 50);
+  }, [selectedSwapId]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -69,6 +78,7 @@ export function ChatPage({ activeSwapId, setActivePage }) {
       await sendChatMessage(activeSwap.id, currentUser.id, inputMessage.trim());
       setInputMessage("");
       await loadMessages();
+      setTimeout(scrollToBottom, 50);
     } catch (err) {
       console.error("Send error:", err);
     } finally {
@@ -237,7 +247,7 @@ export function ChatPage({ activeSwapId, setActivePage }) {
                 </div>
 
                 {/* Messages Body */}
-                <div style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px", background: "rgba(11, 13, 19, 0.4)" }}>
+                <div ref={chatScrollContainerRef} style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px", background: "rgba(11, 13, 19, 0.4)", maxHeight: "480px" }}>
                   {messages.map((m) => {
                     const isMe = m.senderId === currentUser?.id;
                     return (
@@ -271,7 +281,6 @@ export function ChatPage({ activeSwapId, setActivePage }) {
                       </div>
                     );
                   })}
-                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Chat Input */}

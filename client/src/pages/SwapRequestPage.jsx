@@ -104,7 +104,7 @@ export function SwapRequestPage({ itemId, setActivePage, setSelectedSwapId }) {
                 <img src={targetItem?.images[0]} alt={targetItem?.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "4px" }}>{targetItem?.title}</h4>
-              <div style={{ color: "var(--palette-yellow)", fontWeight: 800 }}>~${targetItem?.estimatedValue}</div>
+              <div style={{ color: "var(--palette-yellow)", fontWeight: 800 }}>~₹{targetItem?.estimatedValue?.toLocaleString('en-IN')}</div>
               <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Owner: {targetItem?.ownerName}</div>
             </div>
 
@@ -147,7 +147,7 @@ export function SwapRequestPage({ itemId, setActivePage, setSelectedSwapId }) {
                     <img src={offeredItem.images[0]} alt={offeredItem.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                   <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "4px" }}>{offeredItem.title}</h4>
-                  <div style={{ color: "var(--palette-pink-light)", fontWeight: 800 }}>~${offeredItem.estimatedValue}</div>
+                  <div style={{ color: "var(--palette-pink-light)", fontWeight: 800 }}>~₹{offeredItem.estimatedValue?.toLocaleString('en-IN')}</div>
                   <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Your Closet</div>
                 </>
               ) : (
@@ -194,7 +194,7 @@ export function SwapRequestPage({ itemId, setActivePage, setSelectedSwapId }) {
                         <div style={{ fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {ui.title}
                         </div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--palette-yellow)" }}>${ui.estimatedValue}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--palette-yellow)" }}>₹{ui.estimatedValue?.toLocaleString('en-IN')}</div>
                       </div>
                     </div>
                   );

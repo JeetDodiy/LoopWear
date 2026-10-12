@@ -14,9 +14,10 @@ import {
   ChevronDown 
 } from "lucide-react";
 
-export function Navbar({ activePage, setActivePage, onOpenAddModal }) {
-  const { currentUser, allUsers, switchUser, theme, toggleTheme, pendingIncomingCount } = useApp();
+export function Navbar({ activePage, setActivePage, onOpenAddModal, onOpenAdminAuth, onOpenUserAuth }) {
+  const { currentUser, allUsers, switchUser, logout, theme, toggleTheme, pendingIncomingCount } = useApp();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const isAdmin = currentUser?.role === "admin";
 
   return (
     <header className="navbar">
@@ -78,17 +79,27 @@ export function Navbar({ activePage, setActivePage, onOpenAddModal }) {
               </span>
             )}
           </button>
+          
           <button 
             className={`nav-link-btn ${activePage === "dashboard" ? "active" : ""}`}
             onClick={() => setActivePage("dashboard")}
           >
             <User size={16} /> My Closet
           </button>
+
+          {/* Admin Link - Highlighted if logged in as Admin */}
           <button 
             className={`nav-link-btn ${activePage === "admin" ? "active" : ""}`}
             onClick={() => setActivePage("admin")}
+            style={isAdmin ? {
+              color: "var(--palette-yellow)",
+              fontWeight: 800,
+              background: "rgba(255, 234, 108, 0.12)",
+              borderRadius: "var(--radius-sm)"
+            } : {}}
           >
-            <ShieldCheck size={16} /> Admin
+            <ShieldCheck size={16} color={isAdmin ? "var(--palette-yellow)" : "currentColor"} /> 
+            {isAdmin ? "Admin Control" : "Admin Panel 🔒"}
           </button>
         </nav>
 
@@ -196,22 +207,67 @@ export function Navbar({ activePage, setActivePage, onOpenAddModal }) {
                   ))}
                 </div>
 
-                <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid var(--border-subtle)" }}>
+                <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "8px" }}>
                   <button
                     onClick={() => {
-                      setActivePage("auth");
+                      if (onOpenUserAuth) onOpenUserAuth();
+                      else setActivePage("auth");
+                      setShowUserDropdown(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      fontSize: "0.8rem",
+                      color: "var(--palette-pink-light)",
+                      background: "rgba(255, 97, 248, 0.08)",
+                      border: "1px solid rgba(255, 97, 248, 0.2)",
+                      padding: "6px 10px",
+                      borderRadius: "var(--radius-sm)",
+                      textAlign: "center",
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    👤 User Sign In Panel &rarr;
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (onOpenAdminAuth) onOpenAdminAuth();
+                      else setActivePage("auth");
                       setShowUserDropdown(false);
                     }}
                     style={{
                       width: "100%",
                       fontSize: "0.8rem",
                       color: "var(--palette-yellow)",
-                      background: "transparent",
+                      background: "rgba(255, 234, 108, 0.08)",
+                      border: "1px solid rgba(255, 234, 108, 0.2)",
+                      padding: "6px 10px",
+                      borderRadius: "var(--radius-sm)",
                       textAlign: "center",
-                      fontWeight: 700
+                      fontWeight: 700,
+                      cursor: "pointer"
                     }}
                   >
-                    Open Full Auth & Profile Page &rarr;
+                    🛡️ Admin Sign In Panel &rarr;
+                  </button>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setActivePage("auth");
+                      setShowUserDropdown(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      fontSize: "0.78rem",
+                      color: "var(--text-muted)",
+                      background: "transparent",
+                      border: "none",
+                      padding: "4px",
+                      textAlign: "center",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Log Out of Current Session
                   </button>
                 </div>
               </div>

@@ -17,7 +17,7 @@ export function ListingsPage({ setActivePage, setSelectedItemId }) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedCondition, setSelectedCondition] = useState("All");
   const [maxDistance, setMaxDistance] = useState(15);
-  const [maxValue, setMaxValue] = useState(250);
+  const [maxValue, setMaxValue] = useState(10000);
 
   const categories = ["All", "Outerwear", "Bottoms", "Streetwear", "Tops", "Footwear", "Dresses"];
   const conditions = ["All", "Brand New", "Like New", "Gently Used", "Vintage"];
@@ -45,7 +45,7 @@ export function ListingsPage({ setActivePage, setSelectedItemId }) {
     setSelectedCategory("All");
     setSelectedCondition("All");
     setMaxDistance(15);
-    setMaxValue(250);
+    setMaxValue(10000);
   };
 
   return (
@@ -146,13 +146,13 @@ export function ListingsPage({ setActivePage, setSelectedItemId }) {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", marginBottom: "6px" }}>
                 <span>Max Swap Value</span>
-                <span style={{ color: "var(--palette-pink-neon)" }}>Up to ${maxValue}</span>
+                <span style={{ color: "var(--palette-pink-neon)" }}>Up to ₹{maxValue.toLocaleString('en-IN')}</span>
               </div>
               <input 
                 type="range" 
-                min="40" 
-                max="300" 
-                step="10"
+                min="500" 
+                max="20000" 
+                step="500"
                 value={maxValue} 
                 onChange={(e) => setMaxValue(Number(e.target.value))}
                 style={{ width: "100%", accentColor: "var(--palette-pink-neon)", cursor: "pointer" }}
@@ -198,7 +198,7 @@ export function ListingsPage({ setActivePage, setSelectedItemId }) {
                 <div className="item-card-image-box">
                   <img src={item.images[0]} alt={item.title} className="item-card-image" />
                   <div className="item-card-value-tag">
-                    ~${item.estimatedValue} Swap Val
+                    ~₹{item.estimatedValue?.toLocaleString('en-IN')} Swap Val
                   </div>
                   <div style={{ position: "absolute", bottom: "12px", left: "12px" }}>
                     <span className="badge badge-yellow">

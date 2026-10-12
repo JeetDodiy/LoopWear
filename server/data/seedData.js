@@ -2,12 +2,14 @@ export const initialUsers = [
   {
     id: "usr_1",
     name: "Maya Lin",
+    username: "maya",
     email: "maya.lin@swapfashion.org",
+    password: "maya123",
     role: "user",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-    location: "Greenpoint, Brooklyn (1.2 km away)",
-    city: "Brooklyn, NY",
-    bio: "Vintage archivist & zero-waste stylist. Passionate about Japanese denim and 90s streetwear.",
+    location: "Bandra West, Mumbai (1.2 km away)",
+    city: "Mumbai, MH",
+    bio: "Vintage archivist & zero-waste stylist. Passionate about denim and 90s streetwear.",
     sustainabilityScore: {
       itemsSwapped: 8,
       waterSavedLiters: 19200,
@@ -18,11 +20,13 @@ export const initialUsers = [
   {
     id: "usr_2",
     name: "Julian Rivera",
+    username: "julian",
     email: "julian.rivera@swapfashion.org",
+    password: "julian123",
     role: "user",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-    location: "Williamsburg, Brooklyn (2.8 km away)",
-    city: "Brooklyn, NY",
+    location: "Indiranagar, Bengaluru (2.8 km away)",
+    city: "Bengaluru, KA",
     bio: "Outdoor techwear & rugged outerwear collector. Swapping sizes after closet detox.",
     sustainabilityScore: {
       itemsSwapped: 12,
@@ -34,12 +38,14 @@ export const initialUsers = [
   {
     id: "usr_3",
     name: "Elena Rostova",
+    username: "elena",
     email: "elena.rostova@swapfashion.org",
+    password: "elena123",
     role: "user",
     avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
-    location: "East Village, Manhattan (4.5 km away)",
-    city: "New York, NY",
-    bio: "Minimalist capsule wardrobe enthusiast. French chic, linen blazers, and clean cuts.",
+    location: "Hauz Khas, New Delhi (4.5 km away)",
+    city: "New Delhi, DL",
+    bio: "Minimalist capsule wardrobe enthusiast. Linen blazers, clean cuts, and sustainable chic.",
     sustainabilityScore: {
       itemsSwapped: 5,
       waterSavedLiters: 11800,
@@ -50,11 +56,13 @@ export const initialUsers = [
   {
     id: "usr_admin",
     name: "Platform Supervisor",
+    username: "admin",
     email: "admin@unswap.org",
+    password: "admin123",
     role: "admin",
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
-    location: "Operations HQ, Manhattan",
-    city: "New York, NY",
+    location: "Connaught Place, New Delhi",
+    city: "New Delhi, DL",
     bio: "Chief Community Officer & Environmental Impact Auditor.",
     sustainabilityScore: {
       itemsSwapped: 34,
@@ -75,13 +83,13 @@ export const initialClothingItems = [
     gender: "Unisex",
     condition: "Gently Used",
     conditionRating: 4.5,
-    estimatedValue: 145,
-    description: "Authentic 90s blanket-lined Detroit jacket in faded tobacco tan. Corduroy collar, heavy brass zipper, authentic patina with no tears or odors. Perfect heavyweight streetwear layering piece.",
+    estimatedValue: 4500,
+    description: "Authentic blanket-lined Detroit jacket in faded tobacco tan. Corduroy collar, heavy brass zipper, authentic patina with no tears or odors. Perfect heavyweight streetwear layering piece.",
     images: [
       "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "Greenpoint, Brooklyn",
+    location: "Bandra West, Mumbai",
     distanceKm: 1.2,
     ownerId: "usr_1",
     ownerName: "Maya Lin",
@@ -101,13 +109,13 @@ export const initialClothingItems = [
     gender: "Unisex",
     condition: "Like New",
     conditionRating: 4.8,
-    estimatedValue: 160,
+    estimatedValue: 4800,
     description: "Natural fleece with contrast chest pocket in midnight teal. Windproof barrier laminate, worn only twice on a weekend hike. Completely spotless, super cozy.",
     images: [
       "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "Williamsburg, Brooklyn",
+    location: "Indiranagar, Bengaluru",
     distanceKm: 2.8,
     ownerId: "usr_2",
     ownerName: "Julian Rivera",
@@ -127,13 +135,13 @@ export const initialClothingItems = [
     gender: "Men",
     condition: "Like New",
     conditionRating: 4.9,
-    estimatedValue: 95,
+    estimatedValue: 2800,
     description: "Rigid non-stretch 100% cotton selvedge denim. Classic button fly, medium stone wash with natural honeycomb fading potential. Unaltered hem.",
     images: [
       "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "Greenpoint, Brooklyn",
+    location: "Bandra West, Mumbai",
     distanceKm: 1.2,
     ownerId: "usr_1",
     ownerName: "Maya Lin",
@@ -153,13 +161,13 @@ export const initialClothingItems = [
     gender: "Women",
     condition: "Brand New",
     conditionRating: 5.0,
-    estimatedValue: 190,
-    description: "Brand new with tags Parisian tailored linen blazer in oatmeal ecru. Tortoiseshell buttons, tailored lapel, breathable organic European flax linen. Never worn.",
+    estimatedValue: 5500,
+    description: "Brand new tailored linen blazer in oatmeal ecru. Tortoiseshell buttons, tailored lapel, breathable organic flax linen. Never worn.",
     images: [
       "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "East Village, Manhattan",
+    location: "Hauz Khas, New Delhi",
     distanceKm: 4.5,
     ownerId: "usr_3",
     ownerName: "Elena Rostova",
@@ -179,13 +187,13 @@ export const initialClothingItems = [
     gender: "Unisex",
     condition: "Gently Used",
     conditionRating: 4.4,
-    estimatedValue: 110,
-    description: "Heavyweight 450gsm fleece hoodie in washed cargo sage. Water-repellent finish, zip pouch front pocket, embroidered ACG triangular logo on chest.",
+    estimatedValue: 3200,
+    description: "Heavyweight 450gsm fleece hoodie in washed cargo sage. Water-repellent finish, zip pouch front pocket, embroidered ACG logo on chest.",
     images: [
       "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "Williamsburg, Brooklyn",
+    location: "Indiranagar, Bengaluru",
     distanceKm: 2.8,
     ownerId: "usr_2",
     ownerName: "Julian Rivera",
@@ -205,13 +213,13 @@ export const initialClothingItems = [
     gender: "Unisex",
     condition: "Gently Used",
     conditionRating: 4.3,
-    estimatedValue: 130,
+    estimatedValue: 6500,
     description: "Iconic cherry red smooth leather 8-eye combat boots. Goodyear welted with yellow stitching and AirWair bouncing soles. Already broken in comfortably, freshly polished.",
     images: [
       "https://images.unsplash.com/photo-1520639888713-7851133b1ed0?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "Greenpoint, Brooklyn",
+    location: "Bandra West, Mumbai",
     distanceKm: 1.2,
     ownerId: "usr_1",
     ownerName: "Maya Lin",
@@ -231,13 +239,13 @@ export const initialClothingItems = [
     gender: "Women",
     condition: "Like New",
     conditionRating: 4.7,
-    estimatedValue: 175,
+    estimatedValue: 5200,
     description: "100% sustainable mulberry silk bias-cut midi dress. Adjustable spaghetti straps, cow neckline, flattering silhouette in lustrous marigold gold.",
     images: [
       "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "East Village, Manhattan",
+    location: "Hauz Khas, New Delhi",
     distanceKm: 4.5,
     ownerId: "usr_3",
     ownerName: "Elena Rostova",
@@ -257,13 +265,13 @@ export const initialClothingItems = [
     gender: "Men",
     condition: "Like New",
     conditionRating: 4.9,
-    estimatedValue: 220,
+    estimatedValue: 7500,
     description: "Lightweight, breathable Coreloft insulation hoody in Kingfisher navy. Tyono 20 face fabric sheds moisture, fleece side stretch panels for venting.",
     images: [
       "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=900&q=80",
       "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?auto=format&fit=crop&w=900&q=80"
     ],
-    location: "Williamsburg, Brooklyn",
+    location: "Indiranagar, Bengaluru",
     distanceKm: 2.8,
     ownerId: "usr_2",
     ownerName: "Julian Rivera",
@@ -287,15 +295,15 @@ export const initialSwapRequests = [
     targetItemId: "item_1",
     targetItemTitle: "Vintage Carhartt Detroit Duck Canvas Jacket",
     targetItemImage: "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=900&q=80",
-    targetItemValue: 145,
+    targetItemValue: 4500,
     offeredItemId: "item_2",
     offeredItemTitle: "Patagonia Retro-X Deep Pile Sherpa Fleece",
     offeredItemImage: "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?auto=format&fit=crop&w=900&q=80",
-    offeredItemValue: 160,
+    offeredItemValue: 4800,
     status: "negotiating",
-    fairnessScore: 92,
+    fairnessScore: 94,
     exchangeType: "local_meetup",
-    locationProposal: "McCarren Park Greenpoint Entrance",
+    locationProposal: "Shivaji Park, Dadar West",
     note: "Hey Maya! Love your Detroit jacket. Would you be open to swapping for my Patagonia Retro-X? Both are solid outerwear pieces.",
     createdAt: "2026-10-10T11:00:00Z",
     updatedAt: "2026-10-11T15:20:00Z"
@@ -310,16 +318,16 @@ export const initialSwapRequests = [
     targetItemId: "item_3",
     targetItemTitle: "Levi's 501 1993 Straight Leg Raw Denim Jeans",
     targetItemImage: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=900&q=80",
-    targetItemValue: 95,
+    targetItemValue: 2800,
     offeredItemId: "item_4",
     offeredItemTitle: "Sézane Paris Structured Linen Double-Breasted Blazer",
     offeredItemImage: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=900&q=80",
-    offeredItemValue: 190,
+    offeredItemValue: 5500,
     status: "pending",
-    fairnessScore: 84,
+    fairnessScore: 82,
     exchangeType: "courier",
-    locationProposal: "UPS Tracked Drop-off",
-    note: "Hi! I know the blazer is slightly higher in retail value, but I've been searching for these 501s in size 32 for months!",
+    locationProposal: "BlueDart Express Courier Box",
+    note: "Hi Maya! I know the blazer is slightly higher in retail value, but I've been searching for these 501s in size 32 for months!",
     createdAt: "2026-10-11T17:45:00Z",
     updatedAt: "2026-10-11T17:45:00Z"
   }
@@ -347,7 +355,7 @@ export const initialChatMessages = [
     swapId: "swap_101",
     senderId: "usr_2",
     senderName: "Julian Rivera",
-    text: "Yes, completely! I only wore it twice casually, no matting at all. Can meet by McCarren Park this Thursday afternoon if that works for you?",
+    text: "Yes, completely! I only wore it twice casually, no matting at all. Can meet by Bandra Bandstand or Linking Road this Thursday if that works?",
     timestamp: "2026-10-10T13:40:00Z"
   },
   {
@@ -355,7 +363,7 @@ export const initialChatMessages = [
     swapId: "swap_101",
     senderId: "usr_1",
     senderName: "Maya Lin",
-    text: "Thursday afternoon at McCarren Park sounds perfect! Let's lock in the deal.",
+    text: "Linking Road on Thursday afternoon sounds perfect! Let's lock in the deal.",
     timestamp: "2026-10-11T15:20:00Z"
   }
 ];
@@ -370,6 +378,6 @@ export const initialDisputes = [
     reason: "Item condition discrepancy regarding vintage leather jacket zip",
     status: "under_review",
     createdAt: "2026-10-09T14:00:00Z",
-    resolutionNotes: "Admin requested high-res photo of zipper teeth before confirming exchange integrity."
+    resolutionNotes: "Admin requested photo of zipper teeth before confirming exchange integrity."
   }
 ];

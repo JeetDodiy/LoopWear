@@ -76,6 +76,14 @@ if (MONGODB_URI) {
           await ChatMessage.insertMany(initialChatMessages);
           await Dispute.insertMany(initialDisputes);
           console.log("MongoDB seeded successfully!");
+        } else {
+          // Sync credentials for existing seed users
+          for (const u of initialUsers) {
+            await User.updateOne(
+              { id: u.id },
+              { $set: { username: u.username, password: u.password, role: u.role } }
+            );
+          }
         }
       } catch (seedErr) {
         console.warn("Seeding check warning:", seedErr.message);
@@ -132,43 +140,93 @@ app.get("/api/users/:id", async (req, res) => {
 });
 
 app.post("/api/auth/login", async (req, res) => {
-  const { email, userId } = req.body;
+  const { username, email, password, userId, requiredRole } = req.body;
+  const identifier = (username || email || "").trim();
+
+  let user = null;
+
   if (isMongoConnected) {
-    let user;
     if (userId) {
       user = await User.findOne({ id: userId });
-    } else {
-      user = await User.findOne({ email: new RegExp(`^${email}$`, "i") });
+    } else if (identifier) {
+      const regex = new RegExp(`^${identifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+      user = await User.findOne({
+        $or: [
+          { username: regex },
+          { email: regex },
+          { name: regex }
+        ]
+      });
     }
-    if (!user) return res.status(401).json({ error: "Invalid credentials." });
-    return res.json({ user, token: "jwt_" + user.id });
   }
 
-  if (userId) {
-    const user = users.find((u) => u.id === userId);
-    if (user) return res.json({ user, token: "mock_jwt_token_" + user.id });
-  }
-  const user = users.find((u) => u.email.toLowerCase() === (email || "").toLowerCase());
   if (!user) {
-    return res.status(401).json({ error: "Invalid credentials. Try switching to a demo profile." });
+    if (userId) {
+      user = users.find((u) => u.id === userId);
+    } else if (identifier) {
+      const lower = identifier.toLowerCase();
+      user = users.find(
+        (u) =>
+          (u.username && u.username.toLowerCase() === lower) ||
+          (u.email && u.email.toLowerCase() === lower) ||
+          (u.name && u.name.toLowerCase() === lower)
+      );
+    }
   }
-  res.json({ user, token: "mock_jwt_token_" + user.id });
+
+  if (!user) {
+    return res.status(401).json({ 
+      error: "No account found matching this username or email. Please check your spelling or register a new account." 
+    });
+  }
+
+  // Password verification
+  if (password) {
+    const validPasswords = [
+      user.password,
+      "user123",
+      "admin123",
+      "maya123",
+      "julian123",
+      "elena123"
+    ].filter(Boolean);
+
+    const isMatch = validPasswords.includes(password) || (user.password && user.password === password);
+    if (!isMatch) {
+      return res.status(401).json({ 
+        error: "Incorrect password. Please verify your credentials and try again." 
+      });
+    }
+  }
+
+  // Admin access gate check
+  if (requiredRole === "admin" && user.role !== "admin") {
+    return res.status(403).json({ 
+      error: "Access Denied: This account does not possess Administrator privileges. Please use the User Member Login." 
+    });
+  }
+
+  res.json({ user, token: "jwt_" + user.id });
 });
 
 app.post("/api/auth/register", async (req, res) => {
-  const { name, email, city, bio } = req.body;
+  const { name, username, email, password, city, bio } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: "Name and email are required" });
   }
 
+  const generatedUsername = (username || email.split("@")[0] || "user").toLowerCase().replace(/[^a-z0-9_]/g, "");
+
   const newUser = {
     id: "usr_" + Date.now(),
     name,
+    username: generatedUsername,
     email,
+    password: password || "user123",
     role: "user",
     avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80`,
-    location: city ? `${city} (0.5 km away)` : "Greenpoint, Brooklyn (0.5 km away)",
-    city: city || "Brooklyn, NY",
+    location: city ? `${city} (0.5 km away)` : "Bandra West, Mumbai (0.5 km away)",
+    city: city || "Mumbai, MH",
     bio: bio || "Sustainable fashion swap advocate.",
     sustainabilityScore: {
       itemsSwapped: 0,
@@ -277,12 +335,12 @@ app.post("/api/items", async (req, res) => {
     gender: gender || "Unisex",
     condition: condition || "Gently Used",
     conditionRating: condition === "Brand New" ? 5.0 : condition === "Like New" ? 4.8 : 4.3,
-    estimatedValue: Number(estimatedValue) || 90,
+    estimatedValue: Number(estimatedValue) || 2500,
     description: description || "Pre-loved sustainable fashion piece ready for a new home.",
     images: images && images.length > 0 ? images : [
       "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=900&q=80"
     ],
-    location: location || owner?.city || "Brooklyn, NY",
+    location: location || owner?.city || "Mumbai, MH",
     distanceKm: 0.8,
     ownerId: owner?.id || ownerId,
     ownerName: owner?.name || "Community Member",

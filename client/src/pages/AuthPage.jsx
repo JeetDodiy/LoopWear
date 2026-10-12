@@ -1,247 +1,657 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { loginUser, registerUser } from "../services/api";
-import { LogIn, UserPlus, Shield, Sparkles, CheckCircle2 } from "lucide-react";
+import { 
+  LogIn, 
+  UserPlus, 
+  ShieldCheck, 
+  User, 
+  Key, 
+  Eye, 
+  EyeOff, 
+  Sparkles, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Lock, 
+  ArrowRight,
+  Shield
+} from "lucide-react";
 
-export function AuthPage({ setActivePage }) {
+export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetPanel }) {
   const { currentUser, switchUser, allUsers } = useApp();
-  const [tab, setTab] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [city, setCity] = useState("Brooklyn, NY");
-  const [bio, setBio] = useState("");
+  
+  // Panel mode: 'user' | 'admin'
+  const [panel, setPanel] = useState(initialPanel || "user");
+  
+  // User subtab: 'login' | 'register'
+  const [userTab, setUserTab] = useState("login");
+
+  // User Form fields
+  const [userUsername, setUserUsername] = useState("");
+  const [userPassword, setUserPassword] = useState("");
+  const [regName, setRegName] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regCity, setRegCity] = useState("Bandra, Mumbai");
+  const [regBio, setRegBio] = useState("");
+
+  // Admin Form fields
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+
+  // UI state
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleLogin = async (e) => {
+  useEffect(() => {
+    if (initialPanel) {
+      setPanel(initialPanel);
+    }
+  }, [initialPanel]);
+
+  const handlePanelChange = (newPanel) => {
+    setPanel(newPanel);
+    setError("");
+    setSuccess("");
+    if (onSwitchTargetPanel) onSwitchTargetPanel(newPanel);
+  };
+
+  // User Login Handler
+  const handleUserLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
+    setLoading(true);
+
     try {
-      const data = await loginUser(email);
-      switchUser(data.user);
-      setSuccess(`Logged in as ${data.user.name}!`);
-      setTimeout(() => setActivePage("dashboard"), 800);
+      const res = await loginUser({
+        username: userUsername.trim(),
+        password: userPassword.trim(),
+        requiredRole: "user"
+      });
+
+      switchUser(res.user);
+      setSuccess(`Welcome back, ${res.user.name}! Accessing your wardrobe...`);
+      setTimeout(() => {
+        setActivePage("dashboard");
+      }, 700);
     } catch (err) {
-      setError(err.message || "Invalid credentials. Try switching to a demo profile below.");
+      setError(err.message || "Login failed. Check your username and password.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRegister = async (e) => {
+  // User Registration Handler
+  const handleUserRegister = async (e) => {
     e.preventDefault();
     setError("");
-    if (!name || !email) {
-      setError("Please fill in your name and email.");
+    setSuccess("");
+    setLoading(true);
+
+    if (!regName || !regEmail || !regUsername) {
+      setError("Please fill in your name, username, and email address.");
+      setLoading(false);
       return;
     }
+
     try {
-      const data = await registerUser({ name, email, city, bio });
-      switchUser(data.user);
-      setSuccess("Account created successfully! Redirecting...");
-      setTimeout(() => setActivePage("dashboard"), 800);
+      const res = await registerUser({
+        name: regName.trim(),
+        username: regUsername.trim(),
+        email: regEmail.trim(),
+        password: regPassword.trim() || "user123",
+        city: regCity.trim(),
+        bio: regBio.trim()
+      });
+
+      switchUser(res.user);
+      setSuccess("Account successfully created! Directing to your new closet...");
+      setTimeout(() => {
+        setActivePage("dashboard");
+      }, 700);
     } catch (err) {
-      setError(err.message || "Registration failed.");
+      setError(err.message || "Registration failed. Please check information.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Admin Login Handler
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const res = await loginUser({
+        username: adminUsername.trim(),
+        password: adminPassword.trim(),
+        requiredRole: "admin"
+      });
+
+      switchUser(res.user);
+      setSuccess(`Administrator Verified: ${res.user.name}. Opening Admin Control Center...`);
+      setTimeout(() => {
+        setActivePage("admin");
+      }, 700);
+    } catch (err) {
+      setError(err.message || "Admin authorization rejected. Please check supervisor credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: "60px 0" }}>
-      <div className="content-wrapper" style={{ maxWidth: "680px" }}>
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "36px" }}>
-          <span className="badge badge-yellow" style={{ marginBottom: "12px" }}>
-            Identity & Authentication
+    <div style={{ padding: "50px 0 80px 0" }}>
+      <div className="content-wrapper" style={{ maxWidth: "720px" }}>
+        
+        {/* Page Header */}
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <span className="badge badge-yellow" style={{ marginBottom: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <Key size={13} /> Secure Authentication Gateway
           </span>
-          <h1 style={{ fontSize: "2.4rem", fontWeight: 800, marginBottom: "10px" }}>
-            Join the Clothing Swap Movement
+          <h1 style={{ fontSize: "2.4rem", fontWeight: 800, marginBottom: "8px" }}>
+            Sign In to LoopWear
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>
-            Log in to manage your wardrobe, propose swaps, or switch between demo profiles.
+            Select your destination portal below to sign in with your credentials.
           </p>
         </div>
 
-        {/* 1-Click Quick Demo Profiles Box */}
-        <div className="glass-card" style={{ marginBottom: "32px", borderColor: "var(--palette-pink-light)", background: "rgba(255, 166, 251, 0.05)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-            <Sparkles size={18} color="var(--palette-pink-neon)" />
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>Quick 1-Click Demo Profiles</h3>
-          </div>
-          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "16px" }}>
-            Select any profile below to instantly log in and test different user interactions, swap requests, and admin controls:
-          </p>
+        {/* ================= PORTAL SELECTOR CARDS ================= */}
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "1fr 1fr", 
+          gap: "16px", 
+          marginBottom: "28px" 
+        }}>
+          {/* Option 1: User Portal */}
+          <button
+            type="button"
+            onClick={() => handlePanelChange("user")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              padding: "20px",
+              borderRadius: "var(--radius-md)",
+              border: panel === "user" ? "2px solid var(--palette-pink-neon)" : "1px solid var(--border-subtle)",
+              background: panel === "user" ? "rgba(255, 97, 248, 0.12)" : "var(--bg-surface)",
+              boxShadow: panel === "user" ? "var(--glow-pink)" : "none",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "all 0.2s ease"
+            }}
+          >
+            <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <div style={{ 
+                width: "38px", 
+                height: "38px", 
+                borderRadius: "10px", 
+                background: panel === "user" ? "var(--palette-pink-neon)" : "rgba(255, 255, 255, 0.08)",
+                color: panel === "user" ? "#FFFFFF" : "var(--palette-pink-light)",
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center" 
+              }}>
+                <User size={20} />
+              </div>
+              <span className="badge badge-pink" style={{ fontSize: "0.72rem" }}>
+                Member Portal
+              </span>
+            </div>
+            <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-main)", marginBottom: "4px" }}>
+              User Sign In
+            </div>
+            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+              Browse wardrobe items, propose trades & negotiate deals.
+            </div>
+          </button>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
-            {allUsers.map((u) => {
-              const isSelected = currentUser?.id === u.id;
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => {
-                    switchUser(u);
-                    setSuccess(`Switched to ${u.name}`);
-                  }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "10px",
-                    borderRadius: "var(--radius-md)",
-                    background: isSelected ? "var(--palette-pink-neon)" : "var(--bg-surface)",
-                    color: isSelected ? "#FFFFFF" : "var(--text-main)",
-                    border: isSelected ? "1px solid var(--palette-pink-neon)" : "1px solid var(--border-subtle)",
-                    cursor: "pointer",
-                    textAlign: "left"
-                  }}
-                >
-                  <img src={u.avatar} alt={u.name} style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover" }} />
-                  <div style={{ overflow: "hidden" }}>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 700 }}>{u.name}</div>
-                    <div style={{ fontSize: "0.72rem", color: isSelected ? "rgba(255,255,255,0.85)" : "var(--text-muted)" }}>
-                      {u.role === "admin" ? "Admin Moderator" : u.city}
-                    </div>
+          {/* Option 2: Admin Portal */}
+          <button
+            type="button"
+            onClick={() => handlePanelChange("admin")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              padding: "20px",
+              borderRadius: "var(--radius-md)",
+              border: panel === "admin" ? "2px solid var(--palette-yellow)" : "1px solid var(--border-subtle)",
+              background: panel === "admin" ? "rgba(255, 234, 108, 0.12)" : "var(--bg-surface)",
+              boxShadow: panel === "admin" ? "var(--glow-yellow)" : "none",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "all 0.2s ease"
+            }}
+          >
+            <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <div style={{ 
+                width: "38px", 
+                height: "38px", 
+                borderRadius: "10px", 
+                background: panel === "admin" ? "var(--palette-yellow)" : "rgba(255, 255, 255, 0.08)",
+                color: panel === "admin" ? "#12141D" : "var(--palette-yellow)",
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center" 
+              }}>
+                <ShieldCheck size={20} />
+              </div>
+              <span className="badge badge-yellow" style={{ fontSize: "0.72rem" }}>
+                Restricted Panel
+              </span>
+            </div>
+            <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-main)", marginBottom: "4px" }}>
+              Admin Portal
+            </div>
+            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+              Supervisor command center, dispute resolution & audits.
+            </div>
+          </button>
+        </div>
+
+        {/* ================= ALERTS ================= */}
+        {error && (
+          <div style={{ 
+            background: "rgba(255, 75, 75, 0.12)", 
+            border: "1px solid #ff4b4b", 
+            padding: "14px 18px", 
+            borderRadius: "var(--radius-sm)", 
+            color: "#ff8b8b", 
+            marginBottom: "20px", 
+            fontSize: "0.9rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px"
+          }}>
+            <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div style={{ 
+            background: "rgba(46, 213, 115, 0.12)", 
+            border: "1px solid #2ed573", 
+            padding: "14px 18px", 
+            borderRadius: "var(--radius-sm)", 
+            color: "#2ed573", 
+            marginBottom: "20px", 
+            fontSize: "0.9rem", 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "10px" 
+          }}>
+            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+            <span>{success}</span>
+          </div>
+        )}
+
+        {/* ================= PANEL 1: USER PORTAL ================= */}
+        {panel === "user" && (
+          <div className="glass-card" style={{ borderColor: "rgba(255, 97, 248, 0.3)" }}>
+            
+            {/* User Tab Switch (Login vs Register) */}
+            <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+              <button
+                type="button"
+                className={`btn-outline ${userTab === "login" ? "active" : ""}`}
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  borderColor: userTab === "login" ? "var(--palette-pink-neon)" : "var(--border-subtle)",
+                  background: userTab === "login" ? "rgba(255, 97, 248, 0.15)" : "transparent"
+                }}
+                onClick={() => { setUserTab("login"); setError(""); }}
+              >
+                <LogIn size={16} /> Member Sign In
+              </button>
+              <button
+                type="button"
+                className={`btn-outline ${userTab === "register" ? "active" : ""}`}
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  borderColor: userTab === "register" ? "var(--palette-pink-neon)" : "var(--border-subtle)",
+                  background: userTab === "register" ? "rgba(255, 97, 248, 0.15)" : "transparent"
+                }}
+                onClick={() => { setUserTab("register"); setError(""); }}
+              >
+                <UserPlus size={16} /> Register New Account
+              </button>
+            </div>
+
+            {userTab === "login" ? (
+              <div>
+                <form onSubmit={handleUserLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.86rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                      User Name or Email
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. maya or maya.lin@swapfashion.org"
+                      value={userUsername}
+                      onChange={(e) => setUserUsername(e.target.value)}
+                      style={{ width: "100%" }}
+                      required
+                    />
                   </div>
+
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <label style={{ fontSize: "0.86rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: "0.78rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                      >
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        {showPassword ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your user password"
+                      value={userPassword}
+                      onChange={(e) => setUserPassword(e.target.value)}
+                      style={{ width: "100%" }}
+                      required
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    disabled={loading}
+                    style={{ justifyContent: "center", marginTop: "10px", padding: "14px", fontSize: "1rem" }}
+                  >
+                    <LogIn size={18} /> {loading ? "Signing In..." : "Log In & Enter User Closet"}
+                  </button>
+                </form>
+
+                {/* Quick Auto-Fill Demo Accounts for easy review */}
+                <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid var(--border-subtle)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", color: "var(--palette-pink-light)", fontSize: "0.84rem", fontWeight: 700 }}>
+                    <Sparkles size={14} /> Quick Auto-Fill Swapper Credentials:
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
+                    {[
+                      { name: "Maya Lin", user: "maya", pass: "maya123", city: "Mumbai" },
+                      { name: "Julian Rivera", user: "julian", pass: "julian123", city: "Bengaluru" },
+                      { name: "Elena Rostova", user: "elena", pass: "elena123", city: "Delhi" }
+                    ].map((demo) => (
+                      <button
+                        key={demo.user}
+                        type="button"
+                        onClick={() => {
+                          setUserUsername(demo.user);
+                          setUserPassword(demo.pass);
+                        }}
+                        style={{
+                          background: "rgba(255, 255, 255, 0.04)",
+                          border: "1px solid var(--border-subtle)",
+                          borderRadius: "var(--radius-sm)",
+                          padding: "8px 12px",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          color: "var(--text-main)",
+                          fontSize: "0.82rem"
+                        }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{demo.name}</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>
+                          User: <code style={{ color: "var(--palette-yellow)" }}>{demo.user}</code> | Pass: <code style={{ color: "var(--palette-pink-light)" }}>{demo.pass}</code>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* User Register Form */
+              <form onSubmit={handleUserRegister} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Aarav Sharma"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      style={{ width: "100%" }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                      Choose Username
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. aarav_wear"
+                      value={regUsername}
+                      onChange={(e) => setRegUsername(e.target.value)}
+                      style={{ width: "100%" }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="aarav@example.com"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      style={{ width: "100%" }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Create a password"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      style={{ width: "100%" }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                    City / Neighborhood (India)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bandra West, Mumbai, MH"
+                    value={regCity}
+                    onChange={(e) => setRegCity(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                    Bio & Clothing Exchange Preferences
+                  </label>
+                  <textarea
+                    placeholder="Tell other swappers what fashion sizes or styles you love..."
+                    rows={2}
+                    value={regBio}
+                    onChange={(e) => setRegBio(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="btn-secondary" 
+                  disabled={loading}
+                  style={{ justifyContent: "center", marginTop: "10px", padding: "14px" }}
+                >
+                  <UserPlus size={18} /> {loading ? "Creating..." : "Create Swapper Account"}
                 </button>
-              );
-            })}
+              </form>
+            )}
           </div>
-        </div>
+        )}
 
-        {/* Tab switch */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-          <button
-            className={`btn-outline ${tab === "login" ? "active" : ""}`}
-            style={{
-              flex: 1,
-              justifyContent: "center",
-              borderColor: tab === "login" ? "var(--palette-pink-neon)" : "var(--border-subtle)",
-              background: tab === "login" ? "rgba(255, 97, 248, 0.1)" : "transparent"
-            }}
-            onClick={() => setTab("login")}
-          >
-            <LogIn size={16} /> Log In
-          </button>
-          <button
-            className={`btn-outline ${tab === "register" ? "active" : ""}`}
-            style={{
-              flex: 1,
-              justifyContent: "center",
-              borderColor: tab === "register" ? "var(--palette-pink-neon)" : "var(--border-subtle)",
-              background: tab === "register" ? "rgba(255, 97, 248, 0.1)" : "transparent"
-            }}
-            onClick={() => setTab("register")}
-          >
-            <UserPlus size={16} /> Register New Account
-          </button>
-        </div>
-
-        {/* Auth Box */}
-        <div className="glass-card">
-          {error && (
-            <div style={{ background: "rgba(255, 75, 75, 0.15)", border: "1px solid #ff4b4b", padding: "12px", borderRadius: "var(--radius-sm)", color: "#ff8b8b", marginBottom: "16px", fontSize: "0.88rem" }}>
-              {error}
-            </div>
-          )}
-          {success && (
-            <div style={{ background: "rgba(46, 213, 115, 0.15)", border: "1px solid #2ed573", padding: "12px", borderRadius: "var(--radius-sm)", color: "#2ed573", marginBottom: "16px", fontSize: "0.88rem", display: "flex", alignItems: "center", gap: "8px" }}>
-              <CheckCircle2 size={16} /> {success}
-            </div>
-          )}
-
-          {tab === "login" ? (
-            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {/* ================= PANEL 2: ADMIN PORTAL ================= */}
+        {panel === "admin" && (
+          <div className="glass-card" style={{ borderColor: "rgba(255, 234, 108, 0.4)", background: "rgba(18, 20, 29, 0.95)" }}>
+            
+            {/* Admin Portal Header Banner */}
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "12px", 
+              padding: "14px", 
+              borderRadius: "var(--radius-sm)", 
+              background: "rgba(255, 234, 108, 0.08)",
+              border: "1px solid rgba(255, 234, 108, 0.2)",
+              marginBottom: "24px" 
+            }}>
+              <Shield size={24} color="var(--palette-yellow)" style={{ flexShrink: 0 }} />
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  placeholder="maya.lin@swapfashion.org"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={{ width: "100%" }}
-                  required
-                />
+                <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "var(--palette-yellow)" }}>
+                  LoopWear Supervisor Security Gateway
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                  Administrative access is restricted to verified operations personnel.
+                </div>
               </div>
+            </div>
 
+            <form onSubmit={handleAdminLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{ width: "100%" }}
-                />
-              </div>
-
-              <button type="submit" className="btn-primary" style={{ justifyContent: "center", marginTop: "8px" }}>
-                <LogIn size={18} /> Sign In & Access Closet
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
-                  Full Name
+                <label style={{ display: "block", fontSize: "0.86rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
+                  Admin Username or Official Email
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Jordan Smith"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  placeholder="admin or admin@unswap.org"
+                  value={adminUsername}
+                  onChange={(e) => setAdminUsername(e.target.value)}
                   style={{ width: "100%" }}
                   required
                 />
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
-                  Email Address
-                </label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "0.86rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                    Admin Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: "0.78rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                  >
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
                 <input
-                  type="email"
-                  placeholder="jordan@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter administrator password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
                   style={{ width: "100%" }}
                   required
                 />
               </div>
 
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
-                  Your City / Neighborhood (For Local Swaps)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Brooklyn, NY"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  style={{ width: "100%" }}
-                />
+              <div style={{ 
+                fontSize: "0.8rem", 
+                color: "var(--text-muted)", 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "6px",
+                background: "rgba(255, 255, 255, 0.03)",
+                padding: "8px 12px",
+                borderRadius: "var(--radius-sm)"
+              }}>
+                <Lock size={14} color="var(--palette-yellow)" />
+                RBAC Level 1: Full moderative access, audit logs & dispute overrides.
               </div>
 
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: "6px", color: "var(--text-muted)" }}>
-                  Bio & Style Interests
-                </label>
-                <textarea
-                  placeholder="Tell fellow swappers what styles or sizes you love..."
-                  rows={3}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  style={{ width: "100%" }}
-                />
-              </div>
-
-              <button type="submit" className="btn-secondary" style={{ justifyContent: "center", marginTop: "8px" }}>
-                <UserPlus size={18} /> Create Swapper Account
+              <button 
+                type="submit" 
+                className="btn-primary" 
+                disabled={loading}
+                style={{ 
+                  justifyContent: "center", 
+                  marginTop: "8px", 
+                  padding: "14px", 
+                  fontSize: "1rem",
+                  background: "linear-gradient(135deg, var(--palette-yellow), #e09b00)",
+                  color: "#12141D"
+                }}
+              >
+                <ShieldCheck size={18} /> {loading ? "Verifying Authority..." : "Log In to Admin Panel"}
               </button>
             </form>
-          )}
-        </div>
+
+            {/* Admin Auto-Fill Demo Credentials */}
+            <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid var(--border-subtle)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", color: "var(--palette-yellow)", fontSize: "0.82rem", fontWeight: 700 }}>
+                <Sparkles size={14} /> Quick Demo Administrator Credentials:
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminUsername("admin");
+                  setAdminPassword("admin123");
+                }}
+                style={{
+                  width: "100%",
+                  background: "rgba(255, 234, 108, 0.05)",
+                  border: "1px solid rgba(255, 234, 108, 0.25)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
+                  color: "var(--text-main)",
+                  fontSize: "0.85rem"
+                }}
+              >
+                <div>
+                  <strong>Platform Supervisor</strong> (admin)
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    Username: <code style={{ color: "var(--palette-yellow)" }}>admin</code> | Password: <code style={{ color: "var(--palette-pink-light)" }}>admin123</code>
+                  </div>
+                </div>
+                <span className="badge badge-yellow" style={{ fontSize: "0.7rem" }}>
+                  Fill Credentials &rarr;
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
