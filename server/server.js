@@ -114,56 +114,98 @@ mongoose.connection.on("connected", () => {
   isMongoConnected = true;
 });
 
-// Connect to MongoDB if URI is supplied
-if (MONGODB_URI) {
-  mongoose
-    .connect(MONGODB_URI, { 
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000
-    })
-    .then(async () => {
-      isMongoConnected = true;
-      console.log("Connected to MongoDB via Mongoose successfully!");
+// ----------------- SERVERLESS DATABASE CONNECTION & CACHING -----------------
 
-      // Auto-seed collections if empty with hashed passwords
-      try {
-        const userCount = await User.countDocuments();
-        if (userCount === 0) {
-          console.log("Seeding MongoDB with realistic fashion barter data...");
-          const seededUsers = await Promise.all(
-            initialUsers.map(async (u) => {
-              const hashedPassword = await bcrypt.hash(u.password || "user123", 10);
-              return { ...u, password: hashedPassword };
-            })
-          );
-          await User.insertMany(seededUsers);
-          await ClothingItem.insertMany(initialClothingItems);
-          await SwapRequest.insertMany(initialSwapRequests);
-          await ChatMessage.insertMany(initialChatMessages);
-          await Dispute.insertMany(initialDisputes);
-          console.log("MongoDB seeded successfully!");
-        } else {
-          // Ensure seed users have hashed credentials
-          for (const u of initialUsers) {
-            const existing = await User.findOne({ id: u.id }).select("+password");
-            if (existing && (!existing.password || !existing.password.startsWith("$2"))) {
-              const hashed = await bcrypt.hash(u.password || "user123", 10);
-              await User.updateOne({ id: u.id }, { $set: { password: hashed, username: u.username, role: u.role } });
+let cachedDbPromise = null;
+
+async function ensureDbConnected() {
+  if (mongoose.connection.readyState === 1) {
+    isMongoConnected = true;
+    return true;
+  }
+  if (!MONGODB_URI) return false;
+
+  if (!cachedDbPromise) {
+    cachedDbPromise = mongoose
+      .connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 6000,
+        socketTimeoutMS: 45000
+      })
+      .then(async () => {
+        isMongoConnected = true;
+        console.log("Connected to MongoDB via Mongoose successfully!");
+
+        // Auto-seed collections if empty with hashed passwords
+        try {
+          const userCount = await User.countDocuments();
+          if (userCount === 0) {
+            console.log("Seeding MongoDB with realistic fashion barter data...");
+            const seededUsers = await Promise.all(
+              initialUsers.map(async (u) => {
+                const hashedPassword = await bcrypt.hash(u.password || "user123", 10);
+                return { ...u, password: hashedPassword };
+              })
+            );
+            await User.insertMany(seededUsers);
+            await ClothingItem.insertMany(initialClothingItems);
+            await SwapRequest.insertMany(initialSwapRequests);
+            await ChatMessage.insertMany(initialChatMessages);
+            await Dispute.insertMany(initialDisputes);
+            console.log("MongoDB seeded successfully!");
+          } else {
+            // Ensure seed users have hashed credentials
+            for (const u of initialUsers) {
+              const existing = await User.findOne({ id: u.id }).select("+password");
+              if (existing && (!existing.password || !existing.password.startsWith("$2"))) {
+                const hashed = await bcrypt.hash(u.password || "user123", 10);
+                await User.updateOne({ id: u.id }, { $set: { password: hashed, username: u.username, role: u.role } });
+              }
             }
           }
+        } catch (seedErr) {
+          console.warn("Seeding notice:", seedErr.message);
         }
-      } catch (seedErr) {
-        console.warn("Seeding notice:", seedErr.message);
-      }
-    })
-    .catch((err) => {
-      console.warn("Initial MongoDB connection notice:", err.message);
-      console.log("Operating with built-in instant database engine.");
-      isMongoConnected = false;
-    });
-} else {
-  console.log("Running in development mode with local persistent store.");
+        return true;
+      })
+      .catch((err) => {
+        console.warn("MongoDB connection notice:", err.message);
+        cachedDbPromise = null;
+        isMongoConnected = false;
+        return false;
+      });
+  }
+
+  try {
+    return await cachedDbPromise;
+  } catch (err) {
+    cachedDbPromise = null;
+    isMongoConnected = false;
+    return false;
+  }
 }
+
+// Serverless Middleware: Wait for DB readiness before serving any /api request
+app.use(async (req, res, next) => {
+  if (req.path.startsWith("/api") && req.path !== "/api/db-status") {
+    await ensureDbConnected();
+  }
+  next();
+});
+
+// Diagnostic endpoint to check persistent DB status
+app.get("/api/db-status", async (req, res) => {
+  const connected = await ensureDbConnected();
+  res.json({
+    database: "MongoDB Atlas",
+    connected: Boolean(connected) && isMongoConnected,
+    readyState: mongoose.connection.readyState,
+    host: mongoose.connection.host || null,
+    storageType: isMongoConnected ? "Persistent Cloud Database (Atlas)" : "Ephemeral In-Memory (Resets on idle sleep)",
+    tip: isMongoConnected
+      ? "Database is connected and persisting all data permanently."
+      : "Atlas Network Access requires IP 0.0.0.0/0 whitelist to permit Vercel cloud serverless requests."
+  });
+});
 
 // ----------------- SECURITY & AUTH HELPERS -----------------
 
