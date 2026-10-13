@@ -31,6 +31,23 @@ export function AddItemModal({ isOpen, onClose, setActivePage }) {
 
   if (!isOpen) return null;
 
+  if (!currentUser) {
+    return (
+      <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1000, position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+        <div className="glass-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "460px", width: "100%", textAlign: "center", padding: "36px" }}>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: 800, marginBottom: "8px" }}>Sign In to List Clothes</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "20px" }}>
+            You need to be signed in to add clothing items to the swap marketplace.
+          </p>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <button className="btn-outline" onClick={onClose}>Cancel</button>
+            <button className="btn-primary" onClick={() => { onClose(); if (setActivePage) setActivePage("auth"); }}>Sign In Now</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Preset curated realistic clothing images
   const sampleImages = [
     { label: "Denim / Jeans", url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=900&q=80" },

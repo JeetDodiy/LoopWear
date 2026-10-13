@@ -17,10 +17,10 @@ export function AppProvider({ children }) {
       const usersData = await fetchUsers();
       setAllUsers(usersData);
       
-      // Default to Maya Lin or stored user
+      // Do not auto-login new visitors: only restore if previously authenticated
       const storedUserId = localStorage.getItem("loopwear_user_id");
-      const matched = usersData.find((u) => u.id === storedUserId) || usersData[0];
-      setCurrentUser(matched);
+      const matched = storedUserId ? usersData.find((u) => u.id === storedUserId) : null;
+      setCurrentUser(matched || null);
 
       const itemsData = await fetchItems();
       setItems(itemsData);
@@ -28,6 +28,8 @@ export function AppProvider({ children }) {
       if (matched) {
         const swapsData = await fetchSwaps(matched.id);
         setSwaps(swapsData);
+      } else {
+        setSwaps([]);
       }
     } catch (err) {
       console.error("Error initializing app state:", err);

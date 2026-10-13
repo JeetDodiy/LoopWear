@@ -111,7 +111,24 @@ export function ChatPage({ activeSwapId, setActivePage }) {
     ? activeSwap?.targetOwnerName
     : activeSwap?.requesterName;
 
-  const isTargetOwner = activeSwap?.targetOwnerId === currentUser?.id;
+  if (!currentUser) {
+    return (
+      <div style={{ padding: "80px 0" }}>
+        <div className="content-wrapper" style={{ maxWidth: "520px", textAlign: "center" }}>
+          <div className="glass-card" style={{ padding: "40px 30px" }}>
+            <MessageSquare size={48} color="var(--palette-pink-neon)" style={{ marginBottom: "16px" }} />
+            <h2 style={{ fontSize: "1.7rem", fontWeight: 800, marginBottom: "8px" }}>Sign In to View Messages</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.92rem", marginBottom: "22px" }}>
+              Please sign in with your user account to access negotiation chats and finalized swap deals.
+            </p>
+            <button className="btn-primary" onClick={() => setActivePage("auth")} style={{ justifyContent: "center", width: "100%", padding: "12px" }}>
+              Sign In to Your Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "40px 0" }}>

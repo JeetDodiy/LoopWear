@@ -28,6 +28,30 @@ export function SwapRequestPage({ itemId, setActivePage, setSelectedSwapId }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  if (!currentUser) {
+    return (
+      <div style={{ padding: "80px 0" }}>
+        <div className="content-wrapper" style={{ maxWidth: "520px", textAlign: "center" }}>
+          <div className="glass-card" style={{ padding: "40px 30px" }}>
+            <ArrowLeftRight size={48} color="var(--palette-pink-neon)" style={{ marginBottom: "16px" }} />
+            <h2 style={{ fontSize: "1.7rem", fontWeight: 800, marginBottom: "8px" }}>Sign In to Propose Swaps</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.92rem", marginBottom: "22px" }}>
+              Please sign in with your user account to offer items from your closet for exchange.
+            </p>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+              <button className="btn-outline" onClick={() => setActivePage("listings")}>
+                Back to Listings
+              </button>
+              <button className="btn-primary" onClick={() => setActivePage("auth")}>
+                Sign In to Your Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const offeredItem = items.find((i) => i.id === selectedOfferedId);
 
   // Fairness calculation

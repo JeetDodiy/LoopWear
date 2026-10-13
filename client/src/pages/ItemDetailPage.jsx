@@ -220,7 +220,7 @@ export function ItemDetailPage({ itemId, setActivePage, setSelectedItemId }) {
 
               {userItems.length === 0 ? (
                 <div style={{ padding: "12px", background: "rgba(255,255,255,0.04)", borderRadius: "var(--radius-sm)", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                  You don't have available clothes in your closet to compare yet. Add an item or switch to another demo profile!
+                  {currentUser ? "You don't have available clothes in your closet to compare yet. Add an item to test fair exchange value!" : "Sign in to compare clothes from your closet or propose a swap."}
                 </div>
               ) : (
                 <div>
@@ -286,6 +286,10 @@ export function ItemDetailPage({ itemId, setActivePage, setSelectedItemId }) {
                   className="btn-primary" 
                   style={{ flex: 1, justifyContent: "center", fontSize: "1.05rem", padding: "14px" }}
                   onClick={() => {
+                    if (!currentUser) {
+                      setActivePage("auth");
+                      return;
+                    }
                     setSelectedItemId(item.id);
                     setActivePage("swap-request");
                   }}
