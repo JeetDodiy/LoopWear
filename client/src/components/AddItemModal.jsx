@@ -152,6 +152,15 @@ export function AddItemModal({ isOpen, onClose, setActivePage }) {
       });
 
       await refreshItems();
+      setTitle("");
+      setBrand("");
+      setSize("M");
+      setCategory("Outerwear");
+      setCondition("Gently Used");
+      setEstimatedValue(2500);
+      setDescription("");
+      setImageUrl("");
+      setError("");
       onClose();
       if (setActivePage) setActivePage("listings");
     } catch (err) {

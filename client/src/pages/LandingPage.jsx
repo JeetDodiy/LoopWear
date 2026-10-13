@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useApp } from "../context/AppContext";
 import { 
   Sparkles, 
@@ -11,14 +11,36 @@ import {
   Truck, 
   ArrowRight,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Clock
 } from "lucide-react";
 
 export function LandingPage({ setActivePage, setSelectedItemId, onOpenAddModal }) {
   const { items, currentUser } = useApp();
+  const sliderRef = useRef(null);
+
+  const isNewItem = (item) => {
+    if (item.id && String(item.id).startsWith("itm_")) return true;
+    if (item.createdAt) {
+      const itemDate = new Date(item.createdAt).getTime();
+      const now = new Date().getTime();
+      return (now - itemDate) < 14 * 24 * 60 * 60 * 1000;
+    }
+    return false;
+  };
+
+  const scrollSlider = (direction) => {
+    if (sliderRef.current) {
+      const scrollAmount = direction === "left" ? -320 : 320;
+      sliderRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   const sortedItems = [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  const featuredItems = sortedItems.filter((i) => i.status === "available").slice(0, 8);
+  const availableItems = sortedItems.filter((i) => i.status === "available");
 
   return (
     <div>
@@ -244,78 +266,191 @@ export function LandingPage({ setActivePage, setSelectedItemId, onOpenAddModal }
         </div>
       </section>
 
-      {/* Featured Clothing Items */}
+      {/* Featured Clothing Items Slider & Showcase */}
       <section style={{ padding: "0 0 80px 0" }}>
         <div className="content-wrapper">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "34px" }}>
+          {/* Section Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "24px" }}>
             <div>
-              <span className="badge badge-pink" style={{ marginBottom: "8px" }}>
-                <TrendingUp size={14} /> Freshly Listed
+              <span className="badge badge-pink" style={{ marginBottom: "8px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <TrendingUp size={14} /> Community Wardrobe
               </span>
-              <h2 style={{ fontSize: "2rem", fontWeight: 800 }}>Trending Near You</h2>
+              <h2 style={{ fontSize: "2rem", fontWeight: 800 }}>Explore New & Classic Swaps</h2>
             </div>
             <button 
               className="btn-outline btn-sm"
               onClick={() => setActivePage("listings")}
             >
-              View All ({items.length}) &rarr;
+              Browse All ({items.length}) &rarr;
             </button>
           </div>
 
-          <div className="items-grid">
-            {featuredItems.map((item) => (
-              <div 
-                key={item.id} 
-                className="item-card"
-                onClick={() => {
-                  setSelectedItemId(item.id);
-                  setActivePage("item-detail");
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="item-card-image-box">
-                  <img src={item.images[0]} alt={item.title} className="item-card-image" />
-                  <div className="item-card-value-tag">
-                    ~₹{item.estimatedValue?.toLocaleString('en-IN')} Swap Val
-                  </div>
-                  <div style={{ position: "absolute", bottom: "12px", left: "12px" }}>
-                    <span className="badge badge-yellow">
-                      <MapPin size={12} /> {item.distanceKm} km away
-                    </span>
-                  </div>
-                </div>
-
-                <div className="item-card-body">
-                  <div className="item-card-meta">
-                    <span className="item-card-brand">{item.brand}</span>
-                    <span className="badge badge-cream" style={{ fontSize: "0.72rem" }}>
-                      {item.condition}
-                    </span>
-                  </div>
-
-                  <h3 className="item-card-title">{item.title}</h3>
-
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.06)", padding: "2px 8px", borderRadius: "4px" }}>
-                      Size: <strong>{item.size}</strong>
-                    </span>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.06)", padding: "2px 8px", borderRadius: "4px" }}>
-                      Category: <strong>{item.category}</strong>
-                    </span>
-                  </div>
-
-                  <div className="item-card-footer">
-                    <div className="owner-chip">
-                      <img src={item.ownerAvatar} alt={item.ownerName} className="owner-avatar-sm" />
-                      <span>{item.ownerName}</span>
-                    </div>
-                    <span style={{ color: "var(--palette-pink-neon)", fontSize: "0.85rem", fontWeight: 700 }}>
-                      Inspect &rarr;
-                    </span>
-                  </div>
-                </div>
+          {/* Interactive Horizontal Slider for New and Old Clothes */}
+          <div className="slider-container glass-card" style={{ padding: "20px", marginBottom: "36px" }}>
+            <div className="slider-header">
+              <div>
+                <h3 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>
+                  Clothes Slider (Slide New & Vintage Pieces)
+                </h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", margin: "4px 0 0 0" }}>
+                  Swipe or use the arrow buttons to slide across recently listed items and classic garments.
+                </p>
               </div>
-            ))}
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button 
+                  type="button"
+                  className="slider-nav-btn" 
+                  onClick={() => scrollSlider("left")} 
+                  title="Slide Left"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  type="button"
+                  className="slider-nav-btn" 
+                  onClick={() => scrollSlider("right")} 
+                  title="Slide Right"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="slider-track" ref={sliderRef}>
+              {availableItems.map((item) => {
+                const isNew = isNewItem(item);
+                return (
+                  <div 
+                    key={`home-slide-${item.id}`} 
+                    className="item-card slider-card"
+                    onClick={() => {
+                      setSelectedItemId(item.id);
+                      setActivePage("item-detail");
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="item-card-image-box" style={{ height: "190px" }}>
+                      <img src={item.images[0]} alt={item.title} className="item-card-image" />
+                      <div className="item-card-value-tag">
+                        ~₹{item.estimatedValue?.toLocaleString('en-IN')}
+                      </div>
+
+                      <div style={{ position: "absolute", top: "12px", left: "12px" }}>
+                        {isNew ? (
+                          <span className="badge-new-arrival">
+                            <Flame size={11} /> New Arrival
+                          </span>
+                        ) : (
+                          <span className="badge-classic">
+                            <Clock size={11} /> Classic
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ position: "absolute", bottom: "10px", left: "10px" }}>
+                        <span className="badge badge-yellow" style={{ fontSize: "0.75rem", padding: "2px 8px" }}>
+                          <MapPin size={10} /> {item.distanceKm} km away
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="item-card-body" style={{ padding: "14px" }}>
+                      <div className="item-card-meta">
+                        <span className="item-card-brand">{item.brand}</span>
+                        <span className="badge badge-cream" style={{ fontSize: "0.7rem" }}>
+                          {item.condition}
+                        </span>
+                      </div>
+
+                      <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {item.title}
+                      </h4>
+
+                      <div className="item-card-footer" style={{ paddingTop: "10px" }}>
+                        <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Size: {item.size}</span>
+                        <span style={{ color: "var(--palette-pink-neon)", fontSize: "0.82rem", fontWeight: 700 }}>
+                          Inspect &rarr;
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Full Grid Showcase (All items visible) */}
+          <div className="items-grid">
+            {availableItems.map((item) => {
+              const isNew = isNewItem(item);
+              return (
+                <div 
+                  key={item.id} 
+                  className="item-card"
+                  onClick={() => {
+                    setSelectedItemId(item.id);
+                    setActivePage("item-detail");
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="item-card-image-box">
+                    <img src={item.images[0]} alt={item.title} className="item-card-image" />
+                    <div className="item-card-value-tag">
+                      ~₹{item.estimatedValue?.toLocaleString('en-IN')} Swap Val
+                    </div>
+
+                    <div style={{ position: "absolute", top: "14px", left: "14px" }}>
+                      {isNew ? (
+                        <span className="badge-new-arrival">
+                          <Flame size={12} /> New Arrival
+                        </span>
+                      ) : (
+                        <span className="badge-classic">
+                          <Clock size={12} /> Classic
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ position: "absolute", bottom: "12px", left: "12px" }}>
+                      <span className="badge badge-yellow">
+                        <MapPin size={12} /> {item.distanceKm} km away
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="item-card-body">
+                    <div className="item-card-meta">
+                      <span className="item-card-brand">{item.brand}</span>
+                      <span className="badge badge-cream" style={{ fontSize: "0.72rem" }}>
+                        {item.condition}
+                      </span>
+                    </div>
+
+                    <h3 className="item-card-title">{item.title}</h3>
+
+                    <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.06)", padding: "2px 8px", borderRadius: "4px" }}>
+                        Size: <strong>{item.size}</strong>
+                      </span>
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.06)", padding: "2px 8px", borderRadius: "4px" }}>
+                        Category: <strong>{item.category}</strong>
+                      </span>
+                    </div>
+
+                    <div className="item-card-footer">
+                      <div className="owner-chip">
+                        <img src={item.ownerAvatar} alt={item.ownerName} className="owner-avatar-sm" />
+                        <span>{item.ownerName}</span>
+                      </div>
+                      <span style={{ color: "var(--palette-pink-neon)", fontSize: "0.85rem", fontWeight: 700 }}>
+                        Inspect &rarr;
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
