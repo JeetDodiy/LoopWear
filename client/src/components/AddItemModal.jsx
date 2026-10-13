@@ -135,6 +135,9 @@ export function AddItemModal({ isOpen, onClose, setActivePage }) {
     setError("");
 
     try {
+      const ownerId = currentUser?.id || "usr_1";
+      const ownerLocation = currentUser?.city || currentUser?.location || "Mumbai, MH";
+
       await createItem({
         title,
         category,
@@ -144,13 +147,13 @@ export function AddItemModal({ isOpen, onClose, setActivePage }) {
         estimatedValue: Number(estimatedValue),
         description: description || `Pre-loved ${brand} ${category} in ${condition} condition.`,
         images: [imageUrl],
-        ownerId: currentUser.id,
-        location: currentUser.city || "Brooklyn, NY"
+        ownerId,
+        location: ownerLocation
       });
 
       await refreshItems();
       onClose();
-      if (setActivePage) setActivePage("dashboard");
+      if (setActivePage) setActivePage("listings");
     } catch (err) {
       setError(err.message || "Failed to create listing.");
     } finally {

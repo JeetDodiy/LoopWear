@@ -89,9 +89,13 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
       });
 
       switchUser(res.user);
-      setSuccess(`Welcome back, ${res.user.name}! Accessing your wardrobe...`);
+      setSuccess(`Welcome back, ${res.user.name}! Accessing your account...`);
       setTimeout(() => {
-        setActivePage("dashboard");
+        if (res.user.role === "admin") {
+          setActivePage("admin");
+        } else {
+          setActivePage("dashboard");
+        }
       }, 700);
     } catch (err) {
       setError(err.message || "Login failed. Check your username and password.");

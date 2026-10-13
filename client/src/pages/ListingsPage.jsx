@@ -22,8 +22,9 @@ export function ListingsPage({ setActivePage, setSelectedItemId }) {
   const categories = ["All", "Outerwear", "Bottoms", "Streetwear", "Tops", "Footwear", "Dresses"];
   const conditions = ["All", "Brand New", "Like New", "Gently Used", "Vintage"];
 
-  // Apply filters
-  const filteredItems = items.filter((item) => {
+  // Apply filters (newest garments first)
+  const sortedItems = [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const filteredItems = sortedItems.filter((item) => {
     if (item.status !== "available") return false;
     if (selectedCategory !== "All" && item.category !== selectedCategory) return false;
     if (selectedCondition !== "All" && item.condition !== selectedCondition) return false;

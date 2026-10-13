@@ -17,7 +17,8 @@ import {
 export function LandingPage({ setActivePage, setSelectedItemId, onOpenAddModal }) {
   const { items, currentUser } = useApp();
 
-  const featuredItems = items.filter((i) => i.status === "available").slice(0, 4);
+  const sortedItems = [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const featuredItems = sortedItems.filter((i) => i.status === "available").slice(0, 8);
 
   return (
     <div>

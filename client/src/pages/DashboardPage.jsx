@@ -56,8 +56,10 @@ export function DashboardPage({ setActivePage, setSelectedItemId, setSelectedSwa
     }
   }, [currentUser]);
 
-  // User's own items
-  const userItems = items.filter((i) => i.ownerId === currentUser?.id);
+  // User's own items (newest first)
+  const userItems = items
+    .filter((i) => i.ownerId === currentUser?.id)
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
   // Swaps where user is target owner (incoming)
   const incomingSwaps = swaps.filter((s) => s.targetOwnerId === currentUser?.id);
