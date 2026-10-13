@@ -87,6 +87,12 @@ export function AppProvider({ children }) {
     (s) => s.targetOwnerId === currentUser?.id && (s.status === "pending" || s.status === "negotiating")
   ).length;
 
+  const updateCurrentUser = (updatedUser) => {
+    setCurrentUser(updatedUser);
+    setAllUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u)));
+    localStorage.setItem("loopwear_user_id", updatedUser.id);
+  };
+
   const logout = () => {
     localStorage.removeItem("loopwear_user_id");
     localStorage.removeItem("loopwear_token");
@@ -101,6 +107,7 @@ export function AppProvider({ children }) {
       value={{
         currentUser,
         setCurrentUser,
+        updateCurrentUser,
         allUsers,
         items,
         swaps,

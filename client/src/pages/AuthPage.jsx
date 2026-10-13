@@ -14,8 +14,20 @@ import {
   AlertTriangle, 
   Lock, 
   ArrowRight,
-  Shield
+  Shield,
+  Camera,
+  Upload,
+  Image as ImageIcon
 } from "lucide-react";
+
+const REGISTER_AVATARS = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80"
+];
 
 export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetPanel }) {
   const { currentUser, switchUser, allUsers } = useApp();
@@ -35,6 +47,9 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
   const [regPassword, setRegPassword] = useState("");
   const [regCity, setRegCity] = useState("Bandra, Mumbai");
   const [regBio, setRegBio] = useState("");
+  const [regAvatar, setRegAvatar] = useState(REGISTER_AVATARS[0]);
+  const [avatarUploadMode, setAvatarUploadMode] = useState("preset"); // 'preset' | 'file' | 'url'
+  const [customUrlInput, setCustomUrlInput] = useState("");
 
   // Admin Form fields
   const [adminUsername, setAdminUsername] = useState("");
@@ -85,6 +100,43 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
     }
   };
 
+  // Handle image upload and compression for profile photo
+  const handleAvatarFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (PNG, JPG, WebP).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 400;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+        setRegAvatar(dataUrl);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // User Registration Handler
   const handleUserRegister = async (e) => {
     e.preventDefault();
@@ -92,8 +144,31 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
     setSuccess("");
     setLoading(true);
 
-    if (!regName || !regEmail || !regUsername) {
+    if (!regName.trim() || !regEmail.trim() || !regUsername.trim()) {
       setError("Please fill in your name, username, and email address.");
+      setLoading(false);
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(regEmail.trim())) {
+      setError("Please enter a valid email address (e.g. name@example.com).");
+      setLoading(false);
+      return;
+    }
+
+    // Username format validation
+    const cleanUsername = regUsername.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (cleanUsername.length < 3) {
+      setError("Username must be at least 3 characters and contain only letters, numbers, or underscores.");
+      setLoading(false);
+      return;
+    }
+
+    // Password strength
+    if (!regPassword || regPassword.length < 6) {
+      setError("Password must be at least 6 characters long.");
       setLoading(false);
       return;
     }
@@ -101,11 +176,12 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
     try {
       const res = await registerUser({
         name: regName.trim(),
-        username: regUsername.trim(),
+        username: cleanUsername,
         email: regEmail.trim(),
-        password: regPassword.trim() || "user123",
+        password: regPassword.trim(),
         city: regCity.trim(),
-        bio: regBio.trim()
+        bio: regBio.trim(),
+        avatar: regAvatar || undefined
       });
 
       switchUser(res.user);
@@ -464,6 +540,150 @@ export function AuthPage({ setActivePage, initialPanel = "user", onSwitchTargetP
                     onChange={(e) => setRegBio(e.target.value)}
                     style={{ width: "100%" }}
                   />
+                </div>
+
+                {/* Profile Photo Selector Segment */}
+                <div style={{
+                  padding: "16px",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border-subtle)",
+                  background: "rgba(255, 255, 255, 0.02)"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <label style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--palette-pink-light)", display: "flex", alignItems: "center", gap: "6px", margin: 0 }}>
+                      <Camera size={16} /> Choose or Upload Profile Photo
+                    </label>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Your avatar across LoopWear</span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                    {/* Live Preview */}
+                    <div style={{ position: "relative" }}>
+                      <img
+                        src={regAvatar || REGISTER_AVATARS[0]}
+                        alt="Profile Preview"
+                        style={{
+                          width: "60px",
+                          height: "60px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          border: "2px solid var(--palette-pink-neon)",
+                          boxShadow: "var(--glow-pink)"
+                        }}
+                      />
+                    </div>
+
+                    {/* Mode Toggle & Inputs */}
+                    <div style={{ flex: 1, minWidth: "220px" }}>
+                      <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+                        <button
+                          type="button"
+                          className="btn-outline btn-sm"
+                          style={{
+                            fontSize: "0.75rem",
+                            padding: "4px 8px",
+                            background: avatarUploadMode === "preset" ? "rgba(255, 97, 248, 0.15)" : "transparent",
+                            borderColor: avatarUploadMode === "preset" ? "var(--palette-pink-neon)" : "var(--border-subtle)"
+                          }}
+                          onClick={() => setAvatarUploadMode("preset")}
+                        >
+                          Preset Avatars
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-outline btn-sm"
+                          style={{
+                            fontSize: "0.75rem",
+                            padding: "4px 8px",
+                            background: avatarUploadMode === "file" ? "rgba(255, 97, 248, 0.15)" : "transparent",
+                            borderColor: avatarUploadMode === "file" ? "var(--palette-pink-neon)" : "var(--border-subtle)"
+                          }}
+                          onClick={() => setAvatarUploadMode("file")}
+                        >
+                          <Upload size={12} /> Upload Photo
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-outline btn-sm"
+                          style={{
+                            fontSize: "0.75rem",
+                            padding: "4px 8px",
+                            background: avatarUploadMode === "url" ? "rgba(255, 97, 248, 0.15)" : "transparent",
+                            borderColor: avatarUploadMode === "url" ? "var(--palette-pink-neon)" : "var(--border-subtle)"
+                          }}
+                          onClick={() => setAvatarUploadMode("url")}
+                        >
+                          Image Link
+                        </button>
+                      </div>
+
+                      {avatarUploadMode === "preset" && (
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                          {REGISTER_AVATARS.map((av, idx) => (
+                            <img
+                              key={idx}
+                              src={av}
+                              alt={`Preset ${idx + 1}`}
+                              onClick={() => setRegAvatar(av)}
+                              style={{
+                                width: "34px",
+                                height: "34px",
+                                borderRadius: "50%",
+                                objectFit: "cover",
+                                cursor: "pointer",
+                                border: regAvatar === av ? "2px solid var(--palette-pink-neon)" : "1px solid var(--border-subtle)",
+                                transform: regAvatar === av ? "scale(1.15)" : "scale(1)",
+                                transition: "transform 0.15s ease"
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {avatarUploadMode === "file" && (
+                        <div>
+                          <input
+                            type="file"
+                            id="reg-avatar-upload"
+                            accept="image/*"
+                            onChange={handleAvatarFileUpload}
+                            style={{ display: "none" }}
+                          />
+                          <label
+                            htmlFor="reg-avatar-upload"
+                            className="btn-outline btn-sm"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              cursor: "pointer",
+                              fontSize: "0.8rem",
+                              padding: "6px 14px",
+                              color: "var(--palette-yellow)",
+                              borderColor: "var(--palette-yellow)"
+                            }}
+                          >
+                            <Upload size={14} /> Choose Image from Device
+                          </label>
+                        </div>
+                      )}
+
+                      {avatarUploadMode === "url" && (
+                        <div>
+                          <input
+                            type="url"
+                            placeholder="Paste image URL (https://...)"
+                            value={customUrlInput}
+                            onChange={(e) => {
+                              setCustomUrlInput(e.target.value);
+                              if (e.target.value.trim()) setRegAvatar(e.target.value.trim());
+                            }}
+                            style={{ width: "100%", fontSize: "0.82rem", padding: "6px 10px" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <button 

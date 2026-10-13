@@ -273,6 +273,90 @@ app.get("/api/users/:id", async (req, res) => {
   res.json(sanitizeUser(user));
 });
 
+// Update User Profile (Protected by JWT)
+app.put("/api/users/profile", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const { name, bio, city, location, avatar } = req.body;
+
+  let updatedUser = null;
+
+  if (isMongoConnected) {
+    const updateFields = {};
+    if (name && typeof name === "string") updateFields.name = name.trim();
+    if (bio !== undefined) updateFields.bio = String(bio).trim();
+    if (city !== undefined) updateFields.city = String(city).trim();
+    if (location !== undefined) updateFields.location = String(location).trim();
+    if (avatar && typeof avatar === "string") updateFields.avatar = avatar.trim();
+
+    updatedUser = await User.findOneAndUpdate(
+      { id: userId },
+      { $set: updateFields },
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser) return res.status(404).json({ error: "User profile not found." });
+  } else {
+    const idx = users.findIndex((u) => u.id === userId);
+    if (idx === -1) return res.status(404).json({ error: "User profile not found." });
+
+    if (name && typeof name === "string") users[idx].name = name.trim();
+    if (bio !== undefined) users[idx].bio = String(bio).trim();
+    if (city !== undefined) users[idx].city = String(city).trim();
+    if (location !== undefined) users[idx].location = String(location).trim();
+    if (avatar && typeof avatar === "string") users[idx].avatar = avatar.trim();
+
+    updatedUser = users[idx];
+  }
+
+  res.json({
+    message: "Profile updated successfully.",
+    user: sanitizeUser(updatedUser)
+  });
+});
+
+app.put("/api/users/:id", authenticateToken, async (req, res) => {
+  // Allow user to edit their own profile or admin to moderate
+  if (req.user.id !== req.params.id && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden: You may only modify your own profile." });
+  }
+
+  const { name, bio, city, location, avatar } = req.body;
+  let updatedUser = null;
+
+  if (isMongoConnected) {
+    const updateFields = {};
+    if (name && typeof name === "string") updateFields.name = name.trim();
+    if (bio !== undefined) updateFields.bio = String(bio).trim();
+    if (city !== undefined) updateFields.city = String(city).trim();
+    if (location !== undefined) updateFields.location = String(location).trim();
+    if (avatar && typeof avatar === "string") updateFields.avatar = avatar.trim();
+
+    updatedUser = await User.findOneAndUpdate(
+      { id: req.params.id },
+      { $set: updateFields },
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser) return res.status(404).json({ error: "User not found." });
+  } else {
+    const idx = users.findIndex((u) => u.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: "User not found." });
+
+    if (name && typeof name === "string") users[idx].name = name.trim();
+    if (bio !== undefined) users[idx].bio = String(bio).trim();
+    if (city !== undefined) users[idx].city = String(city).trim();
+    if (location !== undefined) users[idx].location = String(location).trim();
+    if (avatar && typeof avatar === "string") users[idx].avatar = avatar.trim();
+
+    updatedUser = users[idx];
+  }
+
+  res.json({
+    message: "Profile updated successfully.",
+    user: sanitizeUser(updatedUser)
+  });
+});
+
 // User Authentication (Strict bcrypt comparison, NO master password bypass)
 app.post("/api/auth/login", async (req, res) => {
   const { username, email, password, userId, requiredRole } = req.body;
@@ -329,46 +413,77 @@ app.post("/api/auth/login", async (req, res) => {
   res.json({ user: sanitizeUser(user), token });
 });
 
-// User Registration with Duplicate Checks & Bcrypt Hashing
+// User Registration with Duplicate Checks, Email Regex & Bcrypt Hashing
 app.post("/api/auth/register", async (req, res) => {
-  const { name, username, email, password, city, bio } = req.body;
+  const { name, username, email, password, city, bio, avatar } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: "Name and email are required." });
   }
 
-  const trimmedEmail = email.trim().toLowerCase();
-  const trimmedUsername = (username || email.split("@")[0] || "user")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "");
-
-  // Duplicate Account Check
-  if (isMongoConnected) {
-    const existing = await User.findOne({
-      $or: [{ email: trimmedEmail }, { username: trimmedUsername }]
+  // 1. Strict Email Format Validation
+  const trimmedEmail = String(email).trim().toLowerCase();
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    return res.status(400).json({ 
+      error: "Please enter a valid email address (e.g. yourname@example.com)." 
     });
-    if (existing) {
+  }
+
+  // 2. Username Validation
+  const rawUsername = (username || email.split("@")[0] || "user").trim().toLowerCase();
+  const trimmedUsername = rawUsername.replace(/[^a-z0-9_]/g, "");
+  if (!trimmedUsername || trimmedUsername.length < 3) {
+    return res.status(400).json({ 
+      error: "Username must be at least 3 characters and contain only letters, numbers, or underscores." 
+    });
+  }
+
+  // 3. Password Length Validation
+  if (!password || password.length < 6) {
+    return res.status(400).json({ 
+      error: "Password must be at least 6 characters long." 
+    });
+  }
+
+  // 4. Duplicate Account Checks (Case-insensitive)
+  if (isMongoConnected) {
+    const existingEmail = await User.findOne({ email: trimmedEmail });
+    if (existingEmail) {
       return res.status(409).json({
-        error: existing.email === trimmedEmail
-          ? "An account with this email address already exists."
-          : "This username is already taken. Please choose another username."
+        error: "An account with this email address already exists. Please log in or use another email."
+      });
+    }
+
+    const existingUser = await User.findOne({ username: trimmedUsername });
+    if (existingUser) {
+      return res.status(409).json({
+        error: "This username is already taken. Please choose another username."
       });
     }
   } else {
-    const existing = users.find(
-      (u) => u.email.toLowerCase() === trimmedEmail || (u.username && u.username.toLowerCase() === trimmedUsername)
-    );
-    if (existing) {
+    const existingEmail = users.find((u) => u.email.toLowerCase() === trimmedEmail);
+    if (existingEmail) {
       return res.status(409).json({
-        error: existing.email.toLowerCase() === trimmedEmail
-          ? "An account with this email address already exists."
-          : "This username is already taken. Please choose another username."
+        error: "An account with this email address already exists. Please log in or use another email."
+      });
+    }
+
+    const existingUser = users.find((u) => u.username && u.username.toLowerCase() === trimmedUsername);
+    if (existingUser) {
+      return res.status(409).json({
+        error: "This username is already taken. Please choose another username."
       });
     }
   }
 
-  // Hash password using bcrypt
-  const hashedPassword = await bcrypt.hash(password || "user123", 10);
+  // 5. Password Hashing using Bcrypt
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // 6. User Custom Profile Photo or Curated Default
+  const defaultAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80";
+  const userAvatar = (avatar && typeof avatar === "string" && avatar.trim()) 
+    ? avatar.trim() 
+    : defaultAvatar;
 
   const newUser = {
     id: "usr_" + crypto.randomUUID(),
@@ -377,7 +492,7 @@ app.post("/api/auth/register", async (req, res) => {
     email: trimmedEmail,
     password: hashedPassword,
     role: "user",
-    avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80`,
+    avatar: userAvatar,
     location: city ? `${city} (0.5 km away)` : "Bandra West, Mumbai (0.5 km away)",
     city: city || "Mumbai, MH",
     bio: bio || "Sustainable fashion swap advocate.",
@@ -389,10 +504,19 @@ app.post("/api/auth/register", async (req, res) => {
     memberSince: new Date().toISOString().split("T")[0]
   };
 
-  if (isMongoConnected) {
-    await User.create(newUser);
-  } else {
-    users.push(newUser);
+  try {
+    if (isMongoConnected) {
+      await User.create(newUser);
+    } else {
+      users.push(newUser);
+    }
+  } catch (dbErr) {
+    if (dbErr.code === 11000) {
+      return res.status(409).json({
+        error: "An account with this email or username already exists. Please sign in instead."
+      });
+    }
+    return res.status(500).json({ error: "Failed to create user account: " + dbErr.message });
   }
 
   const token = generateToken(newUser);

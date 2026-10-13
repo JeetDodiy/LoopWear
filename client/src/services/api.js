@@ -105,6 +105,17 @@ export async function registerUser(userData) {
   return data;
 }
 
+export async function updateUserProfile(profileData) {
+  const res = await fetch(`${API_BASE}/users/profile`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(profileData)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update profile");
+  return data;
+}
+
 export async function fetchUsers() {
   const res = await fetch(`${API_BASE}/users`);
   return res.json();
