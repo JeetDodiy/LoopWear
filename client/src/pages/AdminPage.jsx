@@ -40,14 +40,20 @@ export function AdminPage({ setActivePage, setSelectedItemId }) {
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [showAdminPass, setShowAdminPass] = useState(false);
+  const [tokenRequired, setTokenRequired] = useState(false);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const res = await fetchAdminOverview();
       setData(res);
+      setTokenRequired(false);
     } catch (err) {
       console.error("Admin data error:", err);
+      if (err.message?.includes("token") || err.message?.includes("Access denied") || err.message?.includes("Forbidden") || err.message?.includes("Failed to load")) {
+        setTokenRequired(true);
+        setAuthError("Administrator authentication required. Please enter admin credentials below to view management metrics.");
+      }
     } finally {
       setLoading(false);
     }
@@ -55,7 +61,13 @@ export function AdminPage({ setActivePage, setSelectedItemId }) {
 
   useEffect(() => {
     if (currentUser?.role === "admin") {
-      loadData();
+      const storedToken = typeof window !== "undefined" ? localStorage.getItem("loopwear_token") : null;
+      if (!storedToken) {
+        setTokenRequired(true);
+        setAdminUsername(currentUser.username || "admin");
+      } else {
+        loadData();
+      }
     }
   }, [currentUser]);
 
@@ -71,7 +83,8 @@ export function AdminPage({ setActivePage, setSelectedItemId }) {
         requiredRole: "admin"
       });
       switchUser(res.user);
-      loadData();
+      setTokenRequired(false);
+      await loadData();
     } catch (err) {
       setAuthError(err.message || "Invalid administrator credentials. Access restricted.");
     } finally {
@@ -103,8 +116,8 @@ export function AdminPage({ setActivePage, setSelectedItemId }) {
     }
   };
 
-  // If user is NOT an admin, display the dedicated Admin Gateway Login Panel
-  if (currentUser?.role !== "admin") {
+  // If user is NOT an admin or token is required, display the dedicated Admin Gateway Login Panel
+  if (currentUser?.role !== "admin" || tokenRequired) {
     return (
       <div style={{ padding: "60px 0 100px 0" }}>
         <div className="content-wrapper" style={{ maxWidth: "540px" }}>
