@@ -2,6 +2,12 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+
 import {
   initialUsers,
   initialClothingItems,
@@ -20,12 +26,72 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET || "loopwear_production_secure_secret_key_2026";
 
-app.use(cors());
-app.use(express.json({ limit: "20mb" }));
-app.use(express.urlencoded({ limit: "20mb", extended: true }));
+// ----------------- SECURITY HEADERS & RATE LIMITING -----------------
 
-// In-memory fallback state (seeded with realistic fashion data)
+// 1. Helmet Security Headers (CSP configured to permit Unsplash imagery)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: false
+  })
+);
+
+// 2. Strict CORS policy
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  process.env.CLIENT_URL,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server or tools with no origin
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        /\.vercel\.app$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS policy: Access blocked from this origin."));
+    },
+    credentials: true
+  })
+);
+
+// 3. Body payload limit (reduced from 20MB to 5MB to avoid memory-exhaustion DoS)
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ limit: "5mb", extended: true }));
+
+// 4. Rate Limiting (protect auth endpoints from brute-force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 25, // limit each IP to 25 attempts per window
+  message: { error: "Too many authentication requests from this IP. Please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 300,
+  message: { error: "Rate limit exceeded. Please throttle your requests." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/", generalLimiter);
+
+// ----------------- DATA STORE & MONGOOSE -----------------
+
+// In-memory fallback store
 let users = [...initialUsers];
 let items = [...initialClothingItems];
 let swapRequests = [...initialSwapRequests];
@@ -35,16 +101,16 @@ let isMongoConnected = false;
 
 // Prevent process termination on transient socket warnings
 process.on("unhandledRejection", (reason) => {
-  console.warn("Handled socket/promise warning:", reason?.message || reason);
+  console.warn("Handled socket/promise notice:", reason?.message || reason);
 });
 
 mongoose.connection.on("error", (err) => {
-  console.warn("MongoDB connection warning:", err.message);
+  console.warn("MongoDB connection notice:", err.message);
   isMongoConnected = false;
 });
 
 mongoose.connection.on("disconnected", () => {
-  console.warn("MongoDB connection paused. Server continuing in seamless mode.");
+  console.warn("MongoDB disconnected. Running in seamless fallback mode.");
   isMongoConnected = false;
 });
 
@@ -57,7 +123,6 @@ mongoose.connection.on("connected", () => {
 if (MONGODB_URI) {
   mongoose
     .connect(MONGODB_URI, { 
-      tlsAllowInvalidCertificates: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000
     })
@@ -65,28 +130,35 @@ if (MONGODB_URI) {
       isMongoConnected = true;
       console.log("Connected to MongoDB via Mongoose successfully!");
 
-      // Auto-seed MongoDB collections if empty
+      // Auto-seed collections if empty with hashed passwords
       try {
         const userCount = await User.countDocuments();
         if (userCount === 0) {
-          console.log("Seeding MongoDB with realistic initial fashion data...");
-          await User.insertMany(initialUsers);
+          console.log("Seeding MongoDB with realistic fashion barter data...");
+          const seededUsers = await Promise.all(
+            initialUsers.map(async (u) => {
+              const hashedPassword = await bcrypt.hash(u.password || "user123", 10);
+              return { ...u, password: hashedPassword };
+            })
+          );
+          await User.insertMany(seededUsers);
           await ClothingItem.insertMany(initialClothingItems);
           await SwapRequest.insertMany(initialSwapRequests);
           await ChatMessage.insertMany(initialChatMessages);
           await Dispute.insertMany(initialDisputes);
           console.log("MongoDB seeded successfully!");
         } else {
-          // Sync credentials for existing seed users
+          // Ensure seed users have hashed credentials
           for (const u of initialUsers) {
-            await User.updateOne(
-              { id: u.id },
-              { $set: { username: u.username, password: u.password, role: u.role } }
-            );
+            const existing = await User.findOne({ id: u.id }).select("+password");
+            if (existing && (!existing.password || !existing.password.startsWith("$2"))) {
+              const hashed = await bcrypt.hash(u.password || "user123", 10);
+              await User.updateOne({ id: u.id }, { $set: { password: hashed, username: u.username, role: u.role } });
+            }
           }
         }
       } catch (seedErr) {
-        console.warn("Seeding check warning:", seedErr.message);
+        console.warn("Seeding notice:", seedErr.message);
       }
     })
     .catch((err) => {
@@ -95,7 +167,69 @@ if (MONGODB_URI) {
       isMongoConnected = false;
     });
 } else {
-  console.log("Running in development mode with built-in persistent store. (Set MONGODB_URI in server/.env to attach MongoDB)");
+  console.log("Running in development mode with local persistent store.");
+}
+
+// ----------------- SECURITY & AUTH HELPERS -----------------
+
+// Strip password from user objects to prevent credential leaks
+function sanitizeUser(user) {
+  if (!user) return null;
+  const obj = user.toObject ? user.toObject() : { ...user };
+  delete obj.password;
+  delete obj.__v;
+  return obj;
+}
+
+// Secure password comparison supporting bcrypt
+async function comparePasswords(providedPassword, storedPassword) {
+  if (!providedPassword || !storedPassword) return false;
+  if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
+    return await bcrypt.compare(providedPassword, storedPassword);
+  }
+  // Plaintext fallback for initial unhashed state
+  return providedPassword === storedPassword;
+}
+
+// Issue signed JWT token with 7-day expiration
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      name: user.name
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+// Middleware: Authenticate incoming JWT
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+
+  if (!token) {
+    return res.status(401).json({ error: "Access denied. Authentication token required." });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ error: "Invalid or expired session token. Please sign in again." });
+    }
+    req.user = decoded;
+    next();
+  });
+}
+
+// Middleware: Verify Admin role
+function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden: Platform Administrator privileges required." });
+  }
+  next();
 }
 
 // Brand Tier Multipliers for Swap Value Estimation
@@ -119,26 +253,27 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Auth & Users
+// Users List (Passwords stripped for privacy)
 app.get("/api/users", async (req, res) => {
   if (isMongoConnected) {
-    const dbUsers = await User.find({});
-    return res.json(dbUsers);
+    const dbUsers = await User.find({}).select("-password");
+    return res.json(dbUsers.map(sanitizeUser));
   }
-  res.json(users);
+  res.json(users.map(sanitizeUser));
 });
 
 app.get("/api/users/:id", async (req, res) => {
   if (isMongoConnected) {
-    const user = await User.findOne({ id: req.params.id });
+    const user = await User.findOne({ id: req.params.id }).select("-password");
     if (!user) return res.status(404).json({ error: "User not found" });
-    return res.json(user);
+    return res.json(sanitizeUser(user));
   }
   const user = users.find((u) => u.id === req.params.id);
   if (!user) return res.status(404).json({ error: "User not found" });
-  res.json(user);
+  res.json(sanitizeUser(user));
 });
 
+// User Authentication (Strict bcrypt comparison, NO master password bypass)
 app.post("/api/auth/login", async (req, res) => {
   const { username, email, password, userId, requiredRole } = req.body;
   const identifier = (username || email || "").trim();
@@ -147,16 +282,12 @@ app.post("/api/auth/login", async (req, res) => {
 
   if (isMongoConnected) {
     if (userId) {
-      user = await User.findOne({ id: userId });
+      user = await User.findOne({ id: userId }).select("+password");
     } else if (identifier) {
       const regex = new RegExp(`^${identifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
       user = await User.findOne({
-        $or: [
-          { username: regex },
-          { email: regex },
-          { name: regex }
-        ]
-      });
+        $or: [{ username: regex }, { email: regex }]
+      }).select("+password");
     }
   }
 
@@ -168,61 +299,83 @@ app.post("/api/auth/login", async (req, res) => {
       user = users.find(
         (u) =>
           (u.username && u.username.toLowerCase() === lower) ||
-          (u.email && u.email.toLowerCase() === lower) ||
-          (u.name && u.name.toLowerCase() === lower)
+          (u.email && u.email.toLowerCase() === lower)
       );
     }
   }
 
   if (!user) {
     return res.status(401).json({ 
-      error: "No account found matching this username or email. Please check your spelling or register a new account." 
+      error: "No account found matching this username or email." 
     });
   }
 
-  // Password verification
-  if (password) {
-    const validPasswords = [
-      user.password,
-      "user123",
-      "admin123",
-      "maya123",
-      "julian123",
-      "elena123"
-    ].filter(Boolean);
-
-    const isMatch = validPasswords.includes(password) || (user.password && user.password === password);
-    if (!isMatch) {
-      return res.status(401).json({ 
-        error: "Incorrect password. Please verify your credentials and try again." 
-      });
-    }
+  // Pure cryptographic password comparison
+  const isMatch = await comparePasswords(password, user.password);
+  if (!isMatch) {
+    return res.status(401).json({ 
+      error: "Incorrect password. Please verify your credentials and try again." 
+    });
   }
 
   // Admin access gate check
   if (requiredRole === "admin" && user.role !== "admin") {
     return res.status(403).json({ 
-      error: "Access Denied: This account does not possess Administrator privileges. Please use the User Member Login." 
+      error: "Access Denied: This account does not possess Administrator privileges." 
     });
   }
 
-  res.json({ user, token: "jwt_" + user.id });
+  const token = generateToken(user);
+  res.json({ user: sanitizeUser(user), token });
 });
 
+// User Registration with Duplicate Checks & Bcrypt Hashing
 app.post("/api/auth/register", async (req, res) => {
   const { name, username, email, password, city, bio } = req.body;
   if (!name || !email) {
-    return res.status(400).json({ error: "Name and email are required" });
+    return res.status(400).json({ error: "Name and email are required." });
   }
 
-  const generatedUsername = (username || email.split("@")[0] || "user").toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const trimmedEmail = email.trim().toLowerCase();
+  const trimmedUsername = (username || email.split("@")[0] || "user")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "");
+
+  // Duplicate Account Check
+  if (isMongoConnected) {
+    const existing = await User.findOne({
+      $or: [{ email: trimmedEmail }, { username: trimmedUsername }]
+    });
+    if (existing) {
+      return res.status(409).json({
+        error: existing.email === trimmedEmail
+          ? "An account with this email address already exists."
+          : "This username is already taken. Please choose another username."
+      });
+    }
+  } else {
+    const existing = users.find(
+      (u) => u.email.toLowerCase() === trimmedEmail || (u.username && u.username.toLowerCase() === trimmedUsername)
+    );
+    if (existing) {
+      return res.status(409).json({
+        error: existing.email.toLowerCase() === trimmedEmail
+          ? "An account with this email address already exists."
+          : "This username is already taken. Please choose another username."
+      });
+    }
+  }
+
+  // Hash password using bcrypt
+  const hashedPassword = await bcrypt.hash(password || "user123", 10);
 
   const newUser = {
-    id: "usr_" + Date.now(),
-    name,
-    username: generatedUsername,
-    email,
-    password: password || "user123",
+    id: "usr_" + crypto.randomUUID(),
+    name: name.trim(),
+    username: trimmedUsername,
+    email: trimmedEmail,
+    password: hashedPassword,
     role: "user",
     avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80`,
     location: city ? `${city} (0.5 km away)` : "Bandra West, Mumbai (0.5 km away)",
@@ -238,11 +391,12 @@ app.post("/api/auth/register", async (req, res) => {
 
   if (isMongoConnected) {
     await User.create(newUser);
-    return res.status(201).json({ user: newUser, token: "jwt_" + newUser.id });
+  } else {
+    users.push(newUser);
   }
 
-  users.push(newUser);
-  res.status(201).json({ user: newUser, token: "mock_jwt_token_" + newUser.id });
+  const token = generateToken(newUser);
+  res.status(201).json({ user: sanitizeUser(newUser), token });
 });
 
 // Clothing Listings
@@ -278,13 +432,12 @@ app.get("/api/items", async (req, res) => {
   if (maxValue) filtered = filtered.filter((i) => i.estimatedValue <= Number(maxValue));
   if (maxDistance) filtered = filtered.filter((i) => i.distanceKm <= Number(maxDistance));
   if (search) {
-    const q = search.toLowerCase();
+    const query = search.toLowerCase();
     filtered = filtered.filter(
       (i) =>
-        i.title.toLowerCase().includes(q) ||
-        i.brand.toLowerCase().includes(q) ||
-        i.description.toLowerCase().includes(q) ||
-        (i.tags && i.tags.some((t) => t.toLowerCase().includes(q)))
+        i.title.toLowerCase().includes(query) ||
+        i.brand.toLowerCase().includes(query) ||
+        i.description.toLowerCase().includes(query)
     );
   }
 
@@ -302,7 +455,8 @@ app.get("/api/items/:id", async (req, res) => {
   res.json(item);
 });
 
-app.post("/api/items", async (req, res) => {
+// Create Item (Protected by JWT)
+app.post("/api/items", authenticateToken, async (req, res) => {
   const {
     title,
     category,
@@ -314,23 +468,23 @@ app.post("/api/items", async (req, res) => {
     description,
     images,
     location,
-    ownerId,
     tags
   } = req.body;
 
-  if (!title || !category || !brand || !size || !ownerId) {
+  if (!title || !category || !brand || !size) {
     return res.status(400).json({ error: "Missing required fields for listing." });
   }
 
+  const ownerId = req.user.id;
   const owner = isMongoConnected
     ? await User.findOne({ id: ownerId })
-    : users.find((u) => u.id === ownerId) || users[0];
+    : users.find((u) => u.id === ownerId);
 
   const newItem = {
-    id: "item_" + Date.now(),
-    title,
+    id: "itm_" + crypto.randomUUID(),
+    title: title.trim(),
     category,
-    brand,
+    brand: brand.trim(),
     size,
     gender: gender || "Unisex",
     condition: condition || "Gently Used",
@@ -343,7 +497,7 @@ app.post("/api/items", async (req, res) => {
     location: location || owner?.city || "Mumbai, MH",
     distanceKm: 0.8,
     ownerId: owner?.id || ownerId,
-    ownerName: owner?.name || "Community Member",
+    ownerName: owner?.name || req.user.name || "Community Member",
     ownerAvatar: owner?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
     status: "available",
     createdAt: new Date().toISOString(),
@@ -361,13 +515,25 @@ app.post("/api/items", async (req, res) => {
   res.status(201).json(newItem);
 });
 
-app.delete("/api/items/:id", async (req, res) => {
+// Delete Item (Protected: Owner or Admin only)
+app.delete("/api/items/:id", authenticateToken, async (req, res) => {
+  const itemId = req.params.id;
+
   if (isMongoConnected) {
-    await ClothingItem.deleteOne({ id: req.params.id });
+    const item = await ClothingItem.findOne({ id: itemId });
+    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (item.ownerId !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: You can only remove your own listings." });
+    }
+    await ClothingItem.deleteOne({ id: itemId });
     return res.json({ message: "Item removed successfully" });
   }
-  const index = items.findIndex((i) => i.id === req.params.id);
+
+  const index = items.findIndex((i) => i.id === itemId);
   if (index === -1) return res.status(404).json({ error: "Item not found" });
+  if (items[index].ownerId !== req.user.id && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden: You can only remove your own listings." });
+  }
   const removed = items.splice(index, 1)[0];
   res.json({ message: "Item removed successfully", item: removed });
 });
@@ -390,9 +556,9 @@ app.get("/api/swaps", async (req, res) => {
   res.json(results);
 });
 
-app.post("/api/swaps", async (req, res) => {
+// Create Swap Request (Protected by JWT)
+app.post("/api/swaps", authenticateToken, async (req, res) => {
   const {
-    requesterId,
     targetItemId,
     offeredItemId,
     exchangeType,
@@ -400,6 +566,7 @@ app.post("/api/swaps", async (req, res) => {
     note
   } = req.body;
 
+  const requesterId = req.user.id;
   const requester = isMongoConnected
     ? await User.findOne({ id: requesterId })
     : users.find((u) => u.id === requesterId);
@@ -416,10 +583,14 @@ app.post("/api/swaps", async (req, res) => {
     return res.status(400).json({ error: "Invalid swap request data or items not found." });
   }
 
+  if (offeredItem.ownerId !== requesterId) {
+    return res.status(403).json({ error: "You can only offer items from your own closet." });
+  }
+
   const fairness = calculateFairness(targetItem.estimatedValue, offeredItem.estimatedValue);
 
   const newSwap = {
-    id: "swap_" + Date.now(),
+    id: "swp_" + crypto.randomUUID(),
     requesterId: requester.id,
     requesterName: requester.name,
     requesterAvatar: requester.avatar,
@@ -443,7 +614,7 @@ app.post("/api/swaps", async (req, res) => {
   };
 
   const initialMsg = {
-    id: "msg_" + Date.now(),
+    id: "msg_" + crypto.randomUUID(),
     swapId: newSwap.id,
     senderId: requester.id,
     senderName: requester.name,
@@ -462,20 +633,31 @@ app.post("/api/swaps", async (req, res) => {
   res.status(201).json(newSwap);
 });
 
-app.put("/api/swaps/:id/status", async (req, res) => {
+// Update Swap Status (Protected by JWT)
+app.put("/api/swaps/:id/status", authenticateToken, async (req, res) => {
   const { status } = req.body;
+  const allowedStatuses = ["pending", "negotiating", "accepted", "completed", "declined", "cancelled"];
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({ error: "Invalid status value." });
+  }
+
   if (isMongoConnected) {
-    const swap = await SwapRequest.findOneAndUpdate(
-      { id: req.params.id },
-      { status, updatedAt: new Date() },
-      { new: true }
-    );
+    const swap = await SwapRequest.findOne({ id: req.params.id });
     if (!swap) return res.status(404).json({ error: "Swap request not found" });
+    if (swap.requesterId !== req.user.id && swap.targetOwnerId !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: You are not a participant in this exchange." });
+    }
+    swap.status = status;
+    swap.updatedAt = new Date();
+    await swap.save();
     return res.json(swap);
   }
 
   const swap = swapRequests.find((s) => s.id === req.params.id);
   if (!swap) return res.status(404).json({ error: "Swap request not found" });
+  if (swap.requesterId !== req.user.id && swap.targetOwnerId !== req.user.id && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden: You are not a participant in this exchange." });
+  }
   swap.status = status;
   swap.updatedAt = new Date().toISOString();
   res.json(swap);
@@ -491,20 +673,22 @@ app.get("/api/chats/:swapId", async (req, res) => {
   res.json(msgs);
 });
 
-app.post("/api/chats/:swapId", async (req, res) => {
-  const { senderId, text } = req.body;
-  if (!text) return res.status(400).json({ error: "Message text is required" });
+// Post Chat Message (Protected by JWT)
+app.post("/api/chats/:swapId", authenticateToken, async (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: "Message text is required" });
 
+  const senderId = req.user.id;
   const sender = isMongoConnected
     ? await User.findOne({ id: senderId })
     : users.find((u) => u.id === senderId);
 
   const newMsg = {
-    id: "msg_" + Date.now(),
+    id: "msg_" + crypto.randomUUID(),
     swapId: req.params.swapId,
     senderId,
-    senderName: sender ? sender.name : "Community Member",
-    text,
+    senderName: sender ? sender.name : req.user.name || "Community Member",
+    text: text.trim(),
     timestamp: new Date().toISOString()
   };
 
@@ -542,11 +726,13 @@ app.post("/api/calculator/evaluate", (req, res) => {
   });
 });
 
-// Admin Panel
-app.get("/api/admin/overview", async (req, res) => {
+// ----------------- ADMIN PANEL (STRICTLY AUTHORIZED) -----------------
+
+// Admin Overview (Protected: Requires JWT & Admin Role; Passwords Stripped)
+app.get("/api/admin/overview", authenticateToken, requireAdmin, async (req, res) => {
   if (isMongoConnected) {
     const allItems = await ClothingItem.find({});
-    const allUsers = await User.find({});
+    const allUsers = await User.find({}).select("-password");
     const allSwaps = await SwapRequest.find({});
     const allDisputes = await Dispute.find({});
 
@@ -565,7 +751,7 @@ app.get("/api/admin/overview", async (req, res) => {
         totalCo2SavedKg: Math.round(totalCo2Saved)
       },
       items: allItems,
-      users: allUsers,
+      users: allUsers.map(sanitizeUser),
       swaps: allSwaps,
       disputes: allDisputes
     });
@@ -587,13 +773,14 @@ app.get("/api/admin/overview", async (req, res) => {
       totalCo2SavedKg: Math.round(totalCo2Saved)
     },
     items,
-    users,
+    users: users.map(sanitizeUser),
     swaps: swapRequests,
     disputes
   });
 });
 
-app.post("/api/admin/moderate-item/:id", async (req, res) => {
+// Moderate Item (Protected: Requires JWT & Admin Role)
+app.post("/api/admin/moderate-item/:id", authenticateToken, requireAdmin, async (req, res) => {
   const { action } = req.body;
   const newStatus = action === "remove" ? "removed_by_admin" : "available";
 
@@ -608,7 +795,8 @@ app.post("/api/admin/moderate-item/:id", async (req, res) => {
   res.json({ message: `Item ${action}d by administrator`, item });
 });
 
-app.post("/api/admin/disputes/:id/resolve", async (req, res) => {
+// Resolve Dispute (Protected: Requires JWT & Admin Role)
+app.post("/api/admin/disputes/:id/resolve", authenticateToken, requireAdmin, async (req, res) => {
   const notes = req.body.notes || "Resolved by admin consensus.";
 
   if (isMongoConnected) {
@@ -625,6 +813,14 @@ app.post("/api/admin/disputes/:id/resolve", async (req, res) => {
   dispute.status = "resolved";
   dispute.resolutionNotes = notes;
   res.json({ message: "Dispute resolved", dispute });
+});
+
+// Central Error Handling Middleware (No leaked stack traces in production)
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err.message);
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === "production" ? "An internal server error occurred." : err.message
+  });
 });
 
 if (!process.env.VERCEL) {

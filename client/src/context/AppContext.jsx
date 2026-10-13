@@ -89,6 +89,7 @@ export function AppProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem("loopwear_user_id");
+    localStorage.removeItem("loopwear_token");
     setCurrentUser(null);
     setSwaps([]);
   };

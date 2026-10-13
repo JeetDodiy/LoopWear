@@ -4,6 +4,17 @@ const API_BASE = import.meta.env.VITE_API_URL || (
     : "/api"
 );
 
+function getAuthHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("loopwear_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
+
 export async function fetchHealth() {
   const res = await fetch(`${API_BASE}/health`);
   return res.json();
@@ -30,19 +41,22 @@ export async function fetchItemById(id) {
 export async function createItem(itemData) {
   const res = await fetch(`${API_BASE}/items`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(itemData)
   });
-  if (!res.ok) throw new Error("Failed to create clothing listing");
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to create clothing listing");
+  return data;
 }
 
 export async function deleteItem(id) {
   const res = await fetch(`${API_BASE}/items/${id}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: getAuthHeaders()
   });
-  if (!res.ok) throw new Error("Failed to delete listing");
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to delete listing");
+  return data;
 }
 
 export async function loginUser(identifierOrData, password = "", requiredRole = "") {
@@ -71,6 +85,9 @@ export async function loginUser(identifierOrData, password = "", requiredRole = 
   if (!res.ok) {
     throw new Error(data.error || "Authentication failed");
   }
+  if (data.token && typeof window !== "undefined") {
+    localStorage.setItem("loopwear_token", data.token);
+  }
   return data;
 }
 
@@ -80,8 +97,12 @@ export async function registerUser(userData) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData)
   });
-  if (!res.ok) throw new Error("Registration failed");
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Registration failed");
+  if (data.token && typeof window !== "undefined") {
+    localStorage.setItem("loopwear_token", data.token);
+  }
+  return data;
 }
 
 export async function fetchUsers() {
@@ -99,21 +120,23 @@ export async function fetchSwaps(userId) {
 export async function createSwapRequest(data) {
   const res = await fetch(`${API_BASE}/swaps`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error("Failed to create swap request");
-  return res.json();
+  const resData = await res.json();
+  if (!res.ok) throw new Error(resData.error || "Failed to create swap request");
+  return resData;
 }
 
 export async function updateSwapStatus(swapId, status) {
   const res = await fetch(`${API_BASE}/swaps/${swapId}/status`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ status })
   });
-  if (!res.ok) throw new Error("Failed to update swap status");
-  return res.json();
+  const resData = await res.json();
+  if (!res.ok) throw new Error(resData.error || "Failed to update swap status");
+  return resData;
 }
 
 export async function fetchChatMessages(swapId) {
@@ -125,11 +148,12 @@ export async function fetchChatMessages(swapId) {
 export async function sendChatMessage(swapId, senderId, text) {
   const res = await fetch(`${API_BASE}/chats/${swapId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ senderId, text })
   });
-  if (!res.ok) throw new Error("Failed to send message");
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to send message");
+  return data;
 }
 
 export async function evaluateSwapValue(itemA, itemB) {
@@ -142,25 +166,32 @@ export async function evaluateSwapValue(itemA, itemB) {
 }
 
 export async function fetchAdminOverview() {
-  const res = await fetch(`${API_BASE}/admin/overview`);
-  if (!res.ok) throw new Error("Failed to load admin stats");
-  return res.json();
+  const res = await fetch(`${API_BASE}/admin/overview`, {
+    headers: getAuthHeaders()
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load admin stats");
+  return data;
 }
 
 export async function moderateListing(itemId, action) {
   const res = await fetch(`${API_BASE}/admin/moderate-item/${itemId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ action })
   });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Moderation request failed");
+  return data;
 }
 
 export async function resolveDispute(disputeId, notes) {
   const res = await fetch(`${API_BASE}/admin/disputes/${disputeId}/resolve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ notes })
   });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Dispute resolution failed");
+  return data;
 }
